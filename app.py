@@ -14,7 +14,7 @@ def create_connection():
         user=db_user,
         password=db_password,
         dbname=db_name,
-        port=58946  # Specify the port if needed (25453 for the provided URL)
+        port=23208  # Specify the port if needed (25453 for the provided URL)
     )
 
 # App Title
@@ -22,7 +22,7 @@ st.set_page_config(page_title="Orders System",layout='wide')
 st.title("Order Management System")
 
 # Tabs for functionality
-tab1, tab2, tab3, tab4 = st.tabs(["Add Order", "Search Orders", "View All Orders","Modify Orders"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Add Order", "Search Orders", "View All Orders","Modify Orders","Customers with Multiple Orders"])
 
 # Tab 1: Add Order
 with tab1:
@@ -198,3 +198,42 @@ with tab4:
             st.write("No order found with the given Order Number.")
         
         conn.close()
+# Tab 5: Customers with Multiple Orders
+with tab5:
+    st.header("Customers with Multiple Orders")
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    # Query to find customers with more than one order and their order details
+    cursor.execute(
+        """
+        SELECT c.customer_name, c.customer_phone_1, 
+               ARRAY_AGG(o.order_number) AS order_numbers,
+               SUM(o.order_price) AS total_price
+        FROM customers c
+        INNER JOIN orders o ON c.customer_id = o.customer_id
+        GROUP BY c.customer_id, c.customer_name, c.customer_phone_1
+        HAVING COUNT(o.order_number) > 1
+        """
+    )
+    multiple_orders = cursor.fetchall()
+
+    if multiple_orders:
+        # Prepare data for display
+        data = []
+        for row in multiple_orders:
+            customer_name, customer_phone_1, order_numbers, total_price = row
+            data.append({
+                "Customer Name": customer_name,
+                "Phone Number": customer_phone_1,
+                "Order Numbers": ", ".join(order_numbers),
+                "Total Price": f"${total_price:.2f}"
+            })
+
+        # Display the data as a table
+        st.write("Customers with Multiple Orders:")
+        st.dataframe(data)
+    else:
+        st.write("No customers with multiple orders found.")
+
+    conn.close()
