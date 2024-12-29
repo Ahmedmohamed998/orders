@@ -166,7 +166,7 @@ with tab3:
                 "Email": order[4],
                 "Shipping Company": order[5],
                 "Region": order[6],
-                "Order Price": f"${order[7]:.2f}",
+                "Order Price": f"${order[7]:.2f}"
             })
         df = pd.DataFrame(data)
         st.write("All Orders:")
@@ -223,7 +223,6 @@ with tab3:
         )
     else:
         st.write("No orders found.")
-
 
 with tab4:
     st.header("Update or Remove Orders")
@@ -333,7 +332,7 @@ with tab6:
     conn = create_connection()
     cursor = conn.cursor()
     
-    sort_column = "o.order_number" if sort_by == "Order Number" else "SUM(o.order_price)"
+    sort_column = "ARRAY_AGG(o.order_number)" if sort_by == "Order Number" else "SUM(o.order_price)"
     sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
     
     query = f"""
@@ -343,7 +342,7 @@ with tab6:
            SUM(o.order_price) AS total_price
     FROM customers c
     INNER JOIN orders o ON c.customer_id = o.customer_id
-    GROUP BY c.customer_id, c.customer_name, c.customer_phone_1
+    GROUP BY c.customer_name, c.customer_phone_1
     ORDER BY {sort_column} {sort_direction}
     """
     
