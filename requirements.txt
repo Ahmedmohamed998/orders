@@ -2,3 +2,4 @@ streamlit
 psycopg2-binary
 regex
 pandas
+xlsxwriter
