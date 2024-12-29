@@ -197,7 +197,7 @@ with tab3:
         
             class PDF(FPDF):
                 def header(self):
-                    self.set_font("Arial", size=14, style="B")
+                    self.set_font("Arial", size=12, style="B")
                     self.cell(0, 10, "Order Data", border=False, ln=True, align="C")
                     self.ln(10)
         
@@ -206,25 +206,29 @@ with tab3:
             pdf.add_page()
             pdf.set_font("Arial", size=10)
         
-            # Define fixed column widths
-            col_widths = [30, 50, 30, 30, 70, 40, 30, 30]  # Adjusted widths
+            # Dynamically calculate column widths
+            total_width = 190  # Total usable width for the table
+            col_widths = []
+            max_widths = dataframe.applymap(lambda x: len(str(x))).max().values
+            total_max_width = sum(max_widths)
+            
+            for max_width in max_widths:
+                col_widths.append((max_width / total_max_width) * total_width)
         
             # Table header
             for i, col in enumerate(dataframe.columns):
-                pdf.cell(col_widths[i], 10, col, border=1, align="C")
+                pdf.cell(col_widths[i], 10, str(col), border=1, align="C")
             pdf.ln()
         
             # Table rows
             for _, row in dataframe.iterrows():
                 for i, cell in enumerate(row):
                     cell_text = str(cell) if cell else "-"
-                    if len(cell_text) > 20:  # Wrap long text into multiple lines
-                        pdf.multi_cell(col_widths[i], 10, cell_text, border=1, align="C")
-                    else:
-                        pdf.cell(col_widths[i], 10, cell_text, border=1, align="C")
+                    pdf.cell(col_widths[i], 10, cell_text, border=1, align="C")
                 pdf.ln()
         
             return pdf.output(dest="S").encode("latin1")
+
 
 
         pdf_data = generate_pdf(df)
