@@ -207,7 +207,7 @@ with tab3:
             pdf.set_font("Arial", size=10)
         
             # Define fixed column widths
-            col_widths = [30, 40, 30, 30, 50, 40, 30, 30]  # Adjust widths as necessary
+            col_widths = [30, 50, 30, 30, 70, 40, 30, 30]  # Adjusted widths
         
             # Table header
             for i, col in enumerate(dataframe.columns):
@@ -218,7 +218,10 @@ with tab3:
             for _, row in dataframe.iterrows():
                 for i, cell in enumerate(row):
                     cell_text = str(cell) if cell else "-"
-                    pdf.cell(col_widths[i], 10, cell_text[:20], border=1, align="C")  # Truncate to 20 chars
+                    if len(cell_text) > 20:  # Wrap long text into multiple lines
+                        pdf.multi_cell(col_widths[i], 10, cell_text, border=1, align="C")
+                    else:
+                        pdf.cell(col_widths[i], 10, cell_text, border=1, align="C")
                 pdf.ln()
         
             return pdf.output(dest="S").encode("latin1")
