@@ -192,7 +192,7 @@ with tab3:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-         def generate_pdf(dataframe):
+        def generate_pdf(dataframe):
             from fpdf import FPDF
         
             class PDF(FPDF):
