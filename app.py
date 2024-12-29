@@ -209,7 +209,7 @@ with tab3:
             pdf.set_font("Arial", size=8)
         
             # Dynamically calculate column widths
-            total_width = 180  # Reduce total usable width for a smaller table
+            total_width = 150  # Reduce total usable width for a smaller table
             min_col_width = 20  # Minimum column width
             max_col_width = 50  # Maximum column width
             max_widths = dataframe.applymap(lambda x: len(str(x))).max().values
