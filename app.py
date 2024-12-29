@@ -132,25 +132,47 @@ with tab2:
 
 with tab3:
     st.header("All Orders")
+    
+    sort_by = st.selectbox("Sort by", ["Customer ID", "Order Price"])
+    sort_order = st.radio("Sort order", ["Ascending", "Descending"])
+    
     conn = create_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-               c.email, o.ship_company, o.region, o.order_price
-        FROM orders o
-        INNER JOIN customers c ON o.customer_id = c.customer_id
-        """
-    )
+    sort_column = "c.customer_id" if sort_by == "Customer ID" else "o.order_price"
+    sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
+    
+    query = f"""
+    SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
+           c.email, o.ship_company, o.region, o.order_price, c.customer_id
+    FROM orders o
+    INNER JOIN customers c ON o.customer_id = c.customer_id
+    ORDER BY {sort_column} {sort_direction}
+    """
+    cursor.execute(query)
     all_orders = cursor.fetchall()
+    conn.close()
 
     if all_orders:
-        st.table(all_orders)
+        data = []
+        for order in all_orders:
+            data.append({
+                "Order Number": order[0],
+                "Customer Name": order[1],
+                "Phone 1": order[2],
+                "Phone 2": order[3],
+                "Email": order[4],
+                "Shipping Company": order[5],
+                "Region": order[6],
+                "Order Price": f"${order[7]:.2f}",
+                "Customer ID": order[8]
+            })
+        
+        st.write("Sorted Orders:")
+        st.dataframe(data)
     else:
         st.write("No orders found.")
 
-    conn.close()
 with tab4:
     st.header("Update or Remove Orders")
     
