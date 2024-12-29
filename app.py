@@ -192,42 +192,55 @@ with tab3:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-        def generate_pdf(dataframe):
+         def generate_pdf(dataframe):
             from fpdf import FPDF
         
             class PDF(FPDF):
                 def header(self):
-                    self.set_font("Arial", size=12, style="B")
+                    self.set_font("Arial", style="B", size=12)
                     self.cell(0, 10, "Order Data", border=False, ln=True, align="C")
                     self.ln(10)
         
             pdf = PDF()
             pdf.set_auto_page_break(auto=True, margin=15)
             pdf.add_page()
-            pdf.set_font("Arial", size=10)
+        
+            # Adjust font size dynamically based on column count
+            if len(dataframe.columns) > 6:
+                pdf.set_font("Arial", size=8)
+            else:
+                pdf.set_font("Arial", size=10)
         
             # Dynamically calculate column widths
             total_width = 190  # Total usable width for the table
-            col_widths = []
+            min_col_width = 25
+            max_col_width = 60
             max_widths = dataframe.applymap(lambda x: len(str(x))).max().values
             total_max_width = sum(max_widths)
-            
-            for max_width in max_widths:
-                col_widths.append((max_width / total_max_width) * total_width)
+            col_widths = [
+                max(min_col_width, min(max_col_width, (max_width / total_max_width) * total_width))
+                for max_width in max_widths
+            ]
         
             # Table header
+            pdf.set_font("Arial", style="B", size=10)
             for i, col in enumerate(dataframe.columns):
                 pdf.cell(col_widths[i], 10, str(col), border=1, align="C")
             pdf.ln()
         
             # Table rows
+            pdf.set_font("Arial", size=10)
             for _, row in dataframe.iterrows():
                 for i, cell in enumerate(row):
-                    cell_text = str(cell) if cell else "-"
+                    cell_text = str(cell) if pd.notnull(cell) else "N/A"
+                    # Truncate text if it's too long
+                    if len(cell_text) > 20:
+                        cell_text = cell_text[:17] + "..."
                     pdf.cell(col_widths[i], 10, cell_text, border=1, align="C")
                 pdf.ln()
         
             return pdf.output(dest="S").encode("latin1")
+
 
 
 
