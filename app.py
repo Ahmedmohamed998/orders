@@ -135,18 +135,18 @@ with tab2:
 with tab3:
     st.header("All Orders")
     
-    sort_by = st.selectbox("Sort by", ["Customer ID", "Order Price"])
+    sort_by = st.selectbox("Sort by", ["Order Number", "Order Price"])
     sort_order = st.radio("Sort orders", ["Ascending", "Descending"])
     
     conn = create_connection()
     cursor = conn.cursor()
 
-    sort_column = "c.customer_id" if sort_by == "Customer ID" else "o.order_price"
+    sort_column = "o.order_number" if sort_by == "Order Number" else "o.order_price"
     sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
     
     query = f"""
     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-           c.email, o.ship_company, o.region, o.order_price, c.customer_id
+           c.email, o.ship_company, o.region, o.order_price
     FROM orders o
     INNER JOIN customers c ON o.customer_id = c.customer_id
     ORDER BY {sort_column} {sort_direction}
@@ -167,7 +167,6 @@ with tab3:
                 "Shipping Company": order[5],
                 "Region": order[6],
                 "Order Price": f"${order[7]:.2f}",
-                "Customer ID": order[8]
             })
         df = pd.DataFrame(data)
         st.write("All Orders:")
@@ -224,6 +223,7 @@ with tab3:
         )
     else:
         st.write("No orders found.")
+
 
 with tab4:
     st.header("Update or Remove Orders")
@@ -327,17 +327,17 @@ with tab5:
 with tab6:
     st.header("Orders View")
     
-    sort_by = st.selectbox("Sort by", ["Customer ID", "Total Price"])
+    sort_by = st.selectbox("Sort by", ["Order Number", "Total Price"])
     sort_order = st.radio("Sort order", ["Ascending", "Descending"])
     
     conn = create_connection()
     cursor = conn.cursor()
     
-    sort_column = "c.customer_id" if sort_by == "Customer ID" else "SUM(o.order_price)"
+    sort_column = "o.order_number" if sort_by == "Order Number" else "SUM(o.order_price)"
     sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
     
     query = f"""
-    SELECT c.customer_id, c.customer_name, c.customer_phone_1, 
+    SELECT c.customer_name, c.customer_phone_1, 
            ARRAY_AGG(o.order_number) AS order_numbers,
            COUNT(o.order_number) AS order_count,
            SUM(o.order_price) AS total_price
@@ -354,9 +354,8 @@ with tab6:
     if consolidated_orders:
         data = []
         for row in consolidated_orders:
-            customer_id, customer_name, customer_phone_1, order_numbers, order_count, total_price = row
+            customer_name, customer_phone_1, order_numbers, order_count, total_price = row
             data.append({
-                "Customer ID": customer_id,
                 "Customer Name": customer_name,
                 "Phone Number": customer_phone_1,
                 "Order Numbers": ", ".join(order_numbers),
