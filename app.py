@@ -1,7 +1,7 @@
 import streamlit as st
 import psycopg2
 import re
-import pandas
+import pandas as pd
 db_host = st.secrets["database"]["host"]
 db_user = st.secrets["database"]["user"]
 db_password = st.secrets["database"]["password"]
