@@ -134,7 +134,7 @@ with tab3:
     st.header("All Orders")
     
     sort_by = st.selectbox("Sort by", ["Customer ID", "Order Price"])
-    sort_order = st.radio("Sort order", ["Ascending", "Descending"])
+    sort_order = st.radio("Sort orders", ["Ascending", "Descending"])
     
     conn = create_connection()
     cursor = conn.cursor()
