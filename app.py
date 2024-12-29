@@ -170,6 +170,56 @@ with tab3:
         
         st.write("Sorted Orders:")
         st.dataframe(data)
+        st.write("Download Data:")
+        
+        csv_data = df.to_csv(index=False)
+        st.download_button(
+            label="Download as CSV",
+            data=csv_data,
+            file_name="orders.csv",
+            mime="text/csv"
+        )
+        
+        excel_data = io.BytesIO()
+        with pd.ExcelWriter(excel_data, engine="xlsxwriter") as writer:
+            df.to_excel(writer, index=False, sheet_name="Orders")
+        excel_data.seek(0)
+        st.download_button(
+            label="Download as Excel",
+            data=excel_data,
+            file_name="orders.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        def generate_pdf(dataframe):
+            from fpdf import FPDF
+            
+            pdf = FPDF()
+            pdf.set_auto_page_break(auto=True, margin=15)
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
+            
+            pdf.cell(200, 10, txt="Order Data", ln=True, align="C")
+            pdf.ln(10)
+            
+            for column in dataframe.columns:
+                pdf.cell(40, 10, column, 1)
+            pdf.ln()
+            
+            for index, row in dataframe.iterrows():
+                for cell in row:
+                    pdf.cell(40, 10, str(cell), 1)
+                pdf.ln()
+            
+            return pdf.output(dest="S").encode("latin1")
+
+        pdf_data = generate_pdf(df)
+        st.download_button(
+            label="Download as PDF",
+            data=pdf_data,
+            file_name="orders.pdf",
+            mime="application/pdf"
+        )
     else:
         st.write("No orders found.")
 
