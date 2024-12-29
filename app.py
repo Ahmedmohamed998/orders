@@ -167,9 +167,9 @@ with tab3:
                 "Order Price": f"${order[7]:.2f}",
                 "Customer ID": order[8]
             })
-        
-        st.write("Sorted Orders:")
-        st.dataframe(data)
+        df = pd.DataFrame(data)
+        st.write("All Orders:")
+        st.dataframe(df)
         st.write("Download Data:")
         
         csv_data = df.to_csv(index=False)
