@@ -201,52 +201,28 @@ with tab3:
                     self.cell(0, 10, "Order Data", border=False, ln=True, align="C")
                     self.ln(10)
         
-                def cell_with_wrapping(self, width, height, text, border, align):
-                    # Wrap text if it's too long for the cell
-                    if len(text) > width / 3:  # Adjust factor based on font size
-                        words = text.split(" ")
-                        wrapped_text = ""
-                        line = ""
-                        for word in words:
-                            if self.get_string_width(line + word + " ") < width:
-                                line += word + " "
-                            else:
-                                wrapped_text += line + "\n"
-                                line = word + " "
-                        wrapped_text += line
-                        self.multi_cell(width, height, wrapped_text, border=border, align=align)
-                    else:
-                        self.cell(width, height, text, border=border, align=align)
-        
             pdf = PDF()
             pdf.set_auto_page_break(auto=True, margin=15)
             pdf.add_page()
             pdf.set_font("Arial", size=10)
         
-            # Calculate dynamic column widths based on max content length
-            col_widths = [
-                max(pdf.get_string_width(str(val)) for val in [col] + dataframe[col].astype(str).tolist()) + 10
-                for col in dataframe.columns
-            ]
+            # Define fixed column widths
+            col_widths = [30, 40, 30, 30, 50, 40, 30, 30]  # Adjust widths as necessary
         
-            total_width = sum(col_widths)
-            page_width = 190  # Page width excluding margins
-            scaling_factor = page_width / total_width if total_width > page_width else 1
-            col_widths = [width * scaling_factor for width in col_widths]
-        
-            # Header row
+            # Table header
             for i, col in enumerate(dataframe.columns):
                 pdf.cell(col_widths[i], 10, col, border=1, align="C")
             pdf.ln()
         
-            # Data rows
+            # Table rows
             for _, row in dataframe.iterrows():
                 for i, cell in enumerate(row):
                     cell_text = str(cell) if cell else "-"
-                    pdf.cell_with_wrapping(col_widths[i], 10, cell_text, border=1, align="C")
+                    pdf.cell(col_widths[i], 10, cell_text[:20], border=1, align="C")  # Truncate to 20 chars
                 pdf.ln()
         
             return pdf.output(dest="S").encode("latin1")
+
 
         pdf_data = generate_pdf(df)
         st.download_button(
