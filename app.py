@@ -194,25 +194,32 @@ with tab3:
 
         def generate_pdf(dataframe):
             from fpdf import FPDF
-            
-            pdf = FPDF()
+        
+            class PDF(FPDF):
+                def header(self):
+                    self.set_font("Arial", size=14, style="B")
+                    self.cell(0, 10, "Order Data", border=False, ln=True, align="C")
+                    self.ln(10)
+        
+            pdf = PDF()
             pdf.set_auto_page_break(auto=True, margin=15)
             pdf.add_page()
-            pdf.set_font("Arial", size=12)
+            pdf.set_font("Arial", size=10)
             
-            pdf.cell(200, 10, txt="Order Data", ln=True, align="C")
-            pdf.ln(10)
-            
-            for column in dataframe.columns:
-                pdf.cell(40, 10, column, 1)
+            col_widths = [30, 40, 30, 30, 50]
+            columns = dataframe.columns
+        
+            for i, col in enumerate(columns):
+                pdf.cell(col_widths[i], 10, col, border=1, align="C")
             pdf.ln()
-            
+        
             for index, row in dataframe.iterrows():
-                for cell in row:
-                    pdf.cell(40, 10, str(cell), 1)
+                for i, cell in enumerate(row):
+                    cell_text = str(cell) if cell else "-"
+                    pdf.cell(col_widths[i], 10, cell_text, border=1, align="C")
                 pdf.ln()
             
-            return pdf.output(dest="S").encode("latin1")
+            return pdf.output(dest="S").encode("latin1")    
 
         pdf_data = generate_pdf(df)
         st.download_button(
