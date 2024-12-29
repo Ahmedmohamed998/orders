@@ -192,7 +192,7 @@ with tab3:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-        def generate_pdf(dataframe):
+       def generate_pdf(dataframe):
             from fpdf import FPDF
         
             class PDF(FPDF):
@@ -206,20 +206,23 @@ with tab3:
             pdf.add_page()
             pdf.set_font("Arial", size=10)
             
-            col_widths = [30, 40, 30, 30, 50]
-            columns = dataframe.columns
-        
-            for i, col in enumerate(columns):
+            # Dynamic column widths
+            num_columns = len(dataframe.columns)
+            col_widths = [190 / num_columns] * num_columns  # Divide the page width evenly
+            
+            # Header row
+            for i, col in enumerate(dataframe.columns):
                 pdf.cell(col_widths[i], 10, col, border=1, align="C")
             pdf.ln()
         
-            for index, row in dataframe.iterrows():
+            # Data rows
+            for _, row in dataframe.iterrows():
                 for i, cell in enumerate(row):
                     cell_text = str(cell) if cell else "-"
                     pdf.cell(col_widths[i], 10, cell_text, border=1, align="C")
                 pdf.ln()
             
-            return pdf.output(dest="S").encode("latin1")    
+            return pdf.output(dest="S").encode("latin1")
 
         pdf_data = generate_pdf(df)
         st.download_button(
