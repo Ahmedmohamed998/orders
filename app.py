@@ -197,21 +197,19 @@ with tab3:
         
             class PDF(FPDF):
                 def header(self):
-                    self.set_font("Arial", style="B", size=10)  # Smaller header font
+                    self.set_font("Arial", style="B", size=10)  
                     self.cell(0, 8, "Order Data", border=False, ln=True, align="C")
                     self.ln(6)
         
             pdf = PDF()
-            pdf.set_auto_page_break(auto=True, margin=10)  # Smaller margins
+            pdf.set_auto_page_break(auto=True, margin=10)  
             pdf.add_page()
         
-            # Reduce font size for table content
             pdf.set_font("Arial", size=8)
         
-            # Dynamically calculate column widths
-            total_width = 150  # Reduce total usable width for a smaller table
-            min_col_width = 20  # Minimum column width
-            max_col_width = 50  # Maximum column width
+            total_width = 150  
+            min_col_width = 20 
+            max_col_width = 50  
             max_widths = dataframe.applymap(lambda x: len(str(x))).max().values
             total_max_width = sum(max_widths)
             col_widths = [
@@ -219,28 +217,21 @@ with tab3:
                 for max_width in max_widths
             ]
         
-            # Table header with smaller cells
             pdf.set_font("Arial", style="B", size=8)
             for i, col in enumerate(dataframe.columns):
-                pdf.cell(col_widths[i], 8, str(col), border=1, align="C")  # Smaller cell height
+                pdf.cell(col_widths[i], 8, str(col), border=1, align="C") 
             pdf.ln()
         
-            # Table rows
-            pdf.set_font("Arial", size=7)  # Smaller font for rows
+            pdf.set_font("Arial", size=7)  
             for _, row in dataframe.iterrows():
                 for i, cell in enumerate(row):
                     cell_text = str(cell) if pd.notnull(cell) else "N/A"
-                    # Truncate text for compactness
                     if len(cell_text) > 15:
                         cell_text = cell_text[:12] + "..."
-                    pdf.cell(col_widths[i], 8, cell_text, border=1, align="C")  # Smaller cell height
+                    pdf.cell(col_widths[i], 8, cell_text, border=1, align="C")  
                 pdf.ln()
         
             return pdf.output(dest="S").encode("latin1")
-
-
-
-
 
         pdf_data = generate_pdf(df)
         st.download_button(
