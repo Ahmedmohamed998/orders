@@ -192,7 +192,7 @@ with tab3:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-       def generate_pdf(dataframe):
+        def generate_pdf(dataframe):
             from fpdf import FPDF
         
             class PDF(FPDF):
@@ -223,6 +223,7 @@ with tab3:
                 pdf.ln()
             
             return pdf.output(dest="S").encode("latin1")
+
 
         pdf_data = generate_pdf(df)
         st.download_button(
