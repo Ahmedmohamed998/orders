@@ -361,14 +361,20 @@ with tab4:
                     conn.commit()
                     st.success("Order updated successfully!")
 
-
             st.subheader("Remove Order")
-            if st.button("Delete Order"):
-                cursor.execute(
-                    "DELETE FROM orders WHERE order_number = %s", (search_order_number,)
-                )
-                conn.commit()
-                st.success("Order deleted successfully!")
+            with st.form("delete_order_form"):
+                delete_password = st.text_input("Enter Password to Confirm Deletion", type="password")
+                delete_submit = st.form_submit_button("Delete Order")
+
+                if delete_submit:
+                    if delete_password == "your_secure_password":
+                        cursor.execute(
+                            "DELETE FROM orders WHERE order_number = %s", (search_order_number,)
+                        )
+                        conn.commit()
+                        st.success("Order deleted successfully!")
+                    else:
+                        st.error("Incorrect password. Order deletion canceled.")
         else:
             st.write("No order found with the given Order Number.")
         
