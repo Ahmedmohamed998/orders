@@ -92,7 +92,7 @@ with tab1:
                 )
         ship_company = st.text_input("Shipping Company")
         region = st.selectbox("Region",egypt_governorates)
-        order_number = st.text_input("Order Number")
+        order_number = st.text_input("Order Code")
         order_price = st.number_input("Order Price", min_value=0.0, step=0.01)
         submit = st.form_submit_button("Add Order")
 
