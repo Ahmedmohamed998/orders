@@ -367,7 +367,7 @@ with tab4:
                 delete_submit = st.form_submit_button("Delete Order")
 
                 if delete_submit:
-                    if delete_password == "your_secure_password":
+                    if delete_password == "admin":
                         cursor.execute(
                             "DELETE FROM orders WHERE order_number = %s", (search_order_number,)
                         )
