@@ -161,19 +161,21 @@ with tab1:
 
 with tab2:
     st.header("Search Orders")
-    search_option = st.radio("Search by", ("Customer Phone 1", "Name", "Email"))
+    search_option = st.radio("Search by", ("Order Code", "Customer Phone 1", "Name", "Email"))
     search_query = st.text_input("Enter Search Term")
 
     if search_query:
         conn = create_connection()
         cursor = conn.cursor()
 
-        if search_option == "Customer Phone 1":
+        if search_option == "Order Code":
+            search_condition = "o.order_number = %s"
+        elif search_option == "Customer Phone 1":
             search_condition = "c.customer_phone_1 = %s"
         elif search_option == "Name":
             search_condition = "c.customer_name ILIKE %s"
             search_query = f"%{search_query}%" 
-        else:  
+        else:
             search_condition = "c.email ILIKE %s"
             search_query = f"%{search_query}%"
 
@@ -199,7 +201,7 @@ with tab2:
             st.write("No orders found for the given query.")
 
         conn.close()
-
+        
 with tab3:
     st.header("All Orders")
     
