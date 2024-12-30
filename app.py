@@ -21,25 +21,99 @@ st.set_page_config(page_title="Orders System",layout='wide')
 st.title("Order Management System")
 
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Add Order", "Search Orders", "View All Orders","Modify Orders","Customers with Multiple Orders","Orders View"])
-
+egypt_governorates = [
+    "Cairo", "Alexandria", "Giza", "Dakahlia", "Red Sea", "Beheira",
+    "Fayoum", "Gharbia", "Ismailia", "Menofia", "Minya", "Qaliubiya",
+    "New Valley", "Suez", "Aswan", "Assiut", "Beni Suef", "Port Said",
+    "Damietta", "Sharkia", "South Sinai", "Kafr El Sheikh", "Matruh",
+    "Luxor", "Qena", "North Sinai", "Sohag"
+]
 with tab1:
     st.header("Add New Order")
     with st.form("order_form"):
         customer_name = st.text_input("Customer Name")
+        
         customer_phone_1 = st.text_input("Customer Phone 1")
+
+        def correct_phone_number(phone):
+            if re.search(r"[^\d]", phone):
+                phone = re.sub(r"[^\d]", "", phone)
+                return phone, False,True 
+            elif not phone.startswith("01"):
+                phone="01"+phone
+                return phone, False,True
+            if len(phone) == 11:
+                return phone, True,True 
+            else:
+                return phone, False,False
+
+        corrected_phone_1, is_valid_1, is_valid_11 = correct_phone_number(customer_phone_1)
+
+        if customer_phone_1:
+            if not is_valid_11:
+                st.markdown(
+                    f"<div style='color: red;'>(Invalid Length): {corrected_phone_1}</div>",
+                    unsafe_allow_html=True,
+                )
+            elif not is_valid_1:
+                st.markdown(
+                    f"<div style='color: orange;'>Corrected Phone 1 (Invalid Format): {corrected_phone_1}</div>",
+                    unsafe_allow_html=True,
+                )
+
         customer_phone_2 = st.text_input("Customer Phone 2 (Optional)", value="")
+        corrected_phone_2, is_valid_2, is_valid_22 = correct_phone_number(customer_phone_2)
+
+        if customer_phone_2:
+            if not is_valid_22:
+                st.markdown(
+                    f"<div style='color: red;'>(Invalid Length): {corrected_phone_2}</div>",
+                    unsafe_allow_html=True,
+                )
+            elif not is_valid_2:
+                st.markdown(
+                    f"<div style='color: orange;'>Corrected Phone 2 (Invalid Format): {corrected_phone_2}</div>",
+                    unsafe_allow_html=True,
+                )
+
         email = st.text_input("Email (Optional)", value="")
+        def correct_email(email):
+            if ' ' in email:
+                email = re.sub(r"\s+", "", email)
+                return email, False
+            else:
+                return email, True
+        corrected_email,is_valid=correct_email(email)
+        if email:
+            if not is_valid:
+                st.markdown(
+                    f"<div style='color: orange;'>Corrected email (Invalid Format): {corrected_email}</div>",
+                    unsafe_allow_html=True,
+                )
         ship_company = st.text_input("Shipping Company")
-        region = st.text_input("Region")
+        region = st.selectbox("Region",egypt_governorates)
         order_number = st.text_input("Order Number")
         order_price = st.number_input("Order Price", min_value=0.0, step=0.01)
         submit = st.form_submit_button("Add Order")
 
+        def contains_arabic(text):
+            return bool(re.search(r'[\u0600-\u06FF]', text))
+
         if submit:
             if not customer_name.strip():
                 st.error("Customer Name is required.")
-            elif not customer_phone_1.strip():
-                st.error("Customer Phone 1 is required.")
+            elif contains_arabic(customer_name):
+                st.error("Customer Name cannot contain Arabic characters.")
+            elif not is_valid_1:
+                st.error("Customer Phone 1 is invalid. Please correct the number.")
+            elif contains_arabic(ship_company):
+                st.error("Shipping Company cannot contain Arabic characters.")
+            elif contains_arabic(region):
+                st.error("Region cannot contain Arabic characters.")
+            elif customer_phone_2 and not is_valid_2:
+                st.error("Customer Phone 2 is invalid. Please correct the number.")
+            elif email and not is_valid :
+                st.error("Email is invalid. Please correct the email")
             elif not ship_company.strip():
                 st.error("Shipping Company is required.")
             elif not region.strip():
@@ -47,48 +121,42 @@ with tab1:
             elif not order_number.strip():
                 st.error("Order Number is required.")
             else:
-                if any(
-                    bool(re.search(r'[\u0600-\u06FF]', field))
-                    for field in [customer_name, ship_company, region]
-                ):
-                    st.error("Arabic characters are not allowed in Customer Name, Shipping Company, or Region.")
+                conn = create_connection()
+                cursor = conn.cursor()
+
+                cursor.execute(
+                    "SELECT 1 FROM orders WHERE order_number = %s",
+                    (order_number,)
+                )
+                existing_order = cursor.fetchone()
+
+                if existing_order:
+                    st.error("Order Number already exists. Please enter a unique Order Number.")
                 else:
-                    conn = create_connection()
-                    cursor = conn.cursor()
-
                     cursor.execute(
-                        "SELECT 1 FROM orders WHERE order_number = %s",
-                        (order_number,)
+                        "SELECT customer_id FROM customers WHERE customer_phone_1 = %s",
+                        (corrected_phone_1,)
                     )
-                    existing_order = cursor.fetchone()
+                    customer = cursor.fetchone()
 
-                    if existing_order:
-                        st.error("Order Number already exists. Please enter a unique Order Number.")
+                    if customer:
+                        customer_id = customer[0]
                     else:
                         cursor.execute(
-                            "SELECT customer_id FROM customers WHERE customer_phone_1 = %s",
-                            (customer_phone_1,)
+                            "INSERT INTO customers (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
+                            (customer_name, corrected_phone_1, corrected_phone_2, email)
                         )
-                        customer = cursor.fetchone()
+                        customer_id = cursor.fetchone()[0]
 
-                        if customer:
-                            customer_id = customer[0]
-                        else:
-                            cursor.execute(
-                                "INSERT INTO customers (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
-                                (customer_name, customer_phone_1, customer_phone_2, email)
-                            )
-                            customer_id = cursor.fetchone()[0]
+                    cursor.execute(
+                        "INSERT INTO orders (customer_id, ship_company, region, order_price, order_number) VALUES (%s, %s, %s, %s, %s)",
+                        (customer_id, ship_company, region, order_price, order_number)
+                    )
 
-                        cursor.execute(
-                            "INSERT INTO orders (customer_id, ship_company, region, order_price, order_number) VALUES (%s, %s, %s, %s, %s)",
-                            (customer_id, ship_company, region, order_price, order_number)
-                        )
-
-                        conn.commit()
-                        st.success("Order added successfully!")
+                    conn.commit()
+                    st.success("Order added successfully!")
                     
-                    conn.close()
+                conn.close()
 
 
 with tab2:
@@ -381,7 +449,76 @@ with tab6:
                 "Total Price": f"${total_price:.2f}"
             })
         
+        df = pd.DataFrame(data)
         st.write("Orders:")
-        st.dataframe(data)
+        st.dataframe(df)
+        
+        csv_data = df.to_csv(index=False)
+        st.download_button(
+            label="Download as CSV",
+            data=csv_data,
+            file_name="orders_view.csv",
+            mime="text/csv"
+        )
+        
+        excel_data = io.BytesIO()
+        with pd.ExcelWriter(excel_data, engine="xlsxwriter") as writer:
+            df.to_excel(writer, index=False, sheet_name="Orders View")
+        excel_data.seek(0)
+        st.download_button(
+            label="Download as Excel",
+            data=excel_data,
+            file_name="orders_view.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        
+        def generate_pdf(dataframe):
+            from fpdf import FPDF
+        
+            class PDF(FPDF):
+                def header(self):
+                    self.set_font("Arial", style="B", size=10)  
+                    self.cell(0, 8, "Orders View Data", border=False, ln=True, align="C")
+                    self.ln(6)
+        
+            pdf = PDF()
+            pdf.set_auto_page_break(auto=True, margin=10)  
+            pdf.add_page()
+        
+            pdf.set_font("Arial", size=8)
+        
+            total_width = 150  
+            min_col_width = 20 
+            max_col_width = 50  
+            max_widths = dataframe.applymap(lambda x: len(str(x))).max().values
+            total_max_width = sum(max_widths)
+            col_widths = [
+                max(min_col_width, min(max_col_width, (max_width / total_max_width) * total_width))
+                for max_width in max_widths
+            ]
+        
+            pdf.set_font("Arial", style="B", size=8)
+            for i, col in enumerate(dataframe.columns):
+                pdf.cell(col_widths[i], 8, str(col), border=1, align="C") 
+            pdf.ln()
+        
+            pdf.set_font("Arial", size=7)  
+            for _, row in dataframe.iterrows():
+                for i, cell in enumerate(row):
+                    cell_text = str(cell) if pd.notnull(cell) else "N/A"
+                    if len(cell_text) > 15:
+                        cell_text = cell_text[:12] + "..."
+                    pdf.cell(col_widths[i], 8, cell_text, border=1, align="C")  
+                pdf.ln()
+        
+            return pdf.output(dest="S").encode("latin1")
+
+        pdf_data = generate_pdf(df)
+        st.download_button(
+            label="Download as PDF",
+            data=pdf_data,
+            file_name="orders_view.pdf",
+            mime="application/pdf"
+        )
     else:
         st.write("No orders found.")
