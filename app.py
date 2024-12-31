@@ -207,13 +207,13 @@ if page == "Completed Orders":
     with tab3:
         st.header("All Orders")
         
-        sort_by = st.selectbox("Sort by", ["Order Number", "Order Price"])
+        sort_by = st.selectbox("Sort by", ["Order Code", "Order Price"])
         sort_order = st.radio("Sort orders", ["Ascending", "Descending"])
         
         conn = create_connection()
         cursor = conn.cursor()
 
-        sort_column = "o.order_number" if sort_by == "Order Number" else "o.order_price"
+        sort_column = "o.order_number" if sort_by == "Order Code" else "o.order_price"
         sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
         
         query = f"""
@@ -319,7 +319,7 @@ if page == "Completed Orders":
         st.header("Update or Remove Orders")
         
         st.subheader("Select an Order")
-        search_order_number = st.text_input("Enter Order Number")
+        search_order_number = st.text_input("Enter Order Code")
 
         if search_order_number:
             conn = create_connection()
@@ -423,13 +423,13 @@ if page == "Completed Orders":
     with tab6:
         st.header("Orders View")
         
-        sort_by = st.selectbox("Sort by", ["Order Number", "Total Price"])
+        sort_by = st.selectbox("Sort by", ["Order Code", "Total Price"])
         sort_order = st.radio("Sort order", ["Ascending", "Descending"])
         
         conn = create_connection()
         cursor = conn.cursor()
         
-        sort_column = "ARRAY_AGG(o.order_number)" if sort_by == "Order Number" else "SUM(o.order_price)"
+        sort_column = "ARRAY_AGG(o.order_number)" if sort_by == "Order Code" else "SUM(o.order_price)"
         sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
         
         query = f"""
@@ -702,7 +702,7 @@ elif page == "Cancelled Orders":
     with tab_3:
         st.header("All Orders")
         
-        sort_by = st.selectbox("Sort by", ["Order Number"])
+        sort_by = st.selectbox("Sort by", ["Order Code"])
         sort_order = st.radio("Sort orders", ["Ascending", "Descending"])
         
         conn = create_connection()
@@ -812,7 +812,7 @@ elif page == "Cancelled Orders":
         st.header("Update or Remove Orders")
         
         st.subheader("Select an Order")
-        search_order_number = st.text_input("Enter Order Number")
+        search_order_number = st.text_input("Enter Order Code")
 
         if search_order_number:
             conn = create_connection()
