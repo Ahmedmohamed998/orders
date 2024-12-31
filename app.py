@@ -19,7 +19,7 @@ def create_connection():
 
 st.set_page_config(page_title="Orders System",layout='wide')
 st.title("Order Management System")
-st.sidebar.title("Navigation")
+st.sidebar.title("Order Type")
 page = st.sidebar.radio("Select a page", ["Completed Orders", "Cancelled Orders"])
 egypt_governorates = [
         "Cairo", "Alexandria", "Giza", "Dakahlia", "Red Sea", "Beheira",
