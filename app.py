@@ -28,6 +28,7 @@ egypt_governorates = [
         "Damietta", "Sharkia", "South Sinai", "Kafr El Sheikh", "Matruh",
         "Luxor", "Qena", "North Sinai", "Sohag"
     ]
+reasons=['Customer','Delivery Man']
 if page == "Completed Orders":
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Add Order", "Search Orders", "View All Orders","Modify Orders","Customers with Multiple Orders","Orders View"])
     with tab1:
@@ -212,7 +213,9 @@ if page == "Completed Orders":
         
         conn = create_connection()
         cursor = conn.cursor()
-
+        cursor.execute("SELECT DISTINCT ship_company FROM orders")
+        ship_companies = [row[0] for row in cursor.fetchall()]
+        selected_ship_company = st.selectbox("Filter by Shipping Company", ["All"] + ship_companies)
         sort_column = "o.order_number" if sort_by == "Order Code" else "o.order_price"
         sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
         
@@ -221,10 +224,20 @@ if page == "Completed Orders":
             c.email, o.ship_company, o.region, o.order_price
         FROM orders o
         INNER JOIN customers c ON o.customer_id = c.customer_id
-        ORDER BY {sort_column} {sort_direction}
         """
+        if selected_ship_company != "All":
+            query += f" WHERE o.ship_company = '{selected_ship_company}'"
+        query += f" ORDER BY {sort_column} {sort_direction}"
+
         cursor.execute(query)
         all_orders = cursor.fetchall()
+
+        total_query = "SELECT COUNT(*), COALESCE(SUM(order_price), 0) FROM orders"
+        if selected_ship_company != "All":
+            total_query += f" WHERE ship_company = '{selected_ship_company}'"
+        cursor.execute(total_query)
+        total_orders, total_price = cursor.fetchone()
+
         conn.close()
 
         if all_orders:
@@ -243,6 +256,8 @@ if page == "Completed Orders":
             df = pd.DataFrame(data)
             st.write("All Orders:")
             st.dataframe(df)
+            st.write(f"**Total Orders:** {total_orders}")
+            st.write(f"**Total Price:** ${total_price:.2f}")
             st.write("Download Data:")
             
             csv_data = df.to_csv(index=False)
@@ -343,8 +358,12 @@ if page == "Completed Orders":
                 
                 st.subheader("Update Order")
                 with st.form("update_order_form"):
+                    new_name=st.text_input("Customer Name",value=order_details[1])
+                    new_phone1=st.text_input("Customer Phone 1",value=order_details[2])
+                    new_phone2=st.text_input("Customer Phone 1",value=order_details[3])
+                    new_email=st.text_input("Email",value=order_details[4])
                     new_ship_company = st.text_input("Shipping Company", value=order_details[5])
-                    new_region = st.text_input("Region", value=order_details[6])
+                    new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
                     new_order_price = st.number_input(
                         "Order Price", 
                         value=float(order_details[7]),  
@@ -354,16 +373,30 @@ if page == "Completed Orders":
                     update_submit = st.form_submit_button("Update Order")
 
                     if update_submit:
-                        cursor.execute(
-                            """
-                            UPDATE orders
-                            SET ship_company = %s, region = %s, order_price = %s
-                            WHERE order_number = %s
-                            """,
-                            (new_ship_company, new_region, new_order_price, search_order_number)
-                        )
-                        conn.commit()
-                        st.success("Order updated successfully!")
+                            cursor.execute(
+                                """
+                                UPDATE customers
+                                SET customer_name = %s, customer_phone_1 = %s, customer_phone_2 = %s, email = %s
+                                WHERE customer_id = (
+                                    SELECT customer_id 
+                                    FROM orders 
+                                    WHERE order_number = %s
+                                )
+                                """,
+                                (new_name, new_phone1, new_phone2, new_email, search_order_number)
+                            )
+                            
+                            cursor.execute(
+                                """
+                                UPDATE orders
+                                SET ship_company = %s, region = %s, order_price = %s
+                                WHERE order_number = %s
+                                """,
+                                (new_ship_company, new_region, new_order_price, search_order_number)
+                            )
+
+                            conn.commit()
+                            st.success("Order updated successfully!")
 
                 st.subheader("Remove Order")
                 with st.form("delete_order_form"):
@@ -404,22 +437,27 @@ if page == "Completed Orders":
 
         if multiple_orders:
             data = []
+            total_price = 0
             for row in multiple_orders:
-                customer_name, customer_phone_1, order_numbers, order_count, total_price = row
+                customer_name, customer_phone_1, order_numbers, order_count, customer_total_price = row
+                total_price += customer_total_price
                 data.append({
                     "Customer Name": customer_name,
                     "Phone Number": customer_phone_1,
                     "Order Numbers": ", ".join(order_numbers),
                     "Order Count": order_count,
-                    "Total Price": f"${total_price:.2f}"
+                    "Total Price": f"${customer_total_price:.2f}"
                 })
-
+            num_customers = len(multiple_orders)
             st.write("Customers with Multiple Orders:")
             st.dataframe(data)
+            st.write(f"**Number of Customers with Multiple Orders:** {num_customers}")
+            st.write(f"**Total Price of Their Orders:** ${total_price:.2f}")
         else:
             st.write("No customers with multiple orders found.")
 
         conn.close()
+
     with tab6:
         st.header("Orders View")
         
@@ -445,8 +483,16 @@ if page == "Completed Orders":
         
         cursor.execute(query)
         consolidated_orders = cursor.fetchall()
+
+        total_query = """
+        SELECT COUNT(o.order_number), COALESCE(SUM(o.order_price), 0)
+        FROM orders o
+        """
+        cursor.execute(total_query)
+        total_orders, total_prices = cursor.fetchone()
+
         conn.close()
-        
+
         if consolidated_orders:
             data = []
             for row in consolidated_orders:
@@ -462,7 +508,9 @@ if page == "Completed Orders":
             df = pd.DataFrame(data)
             st.write("Orders:")
             st.dataframe(df)
-            
+            st.write(f"**Total Orders:** {total_orders}")
+            st.write(f"**Total Price:** ${total_prices:.2f}")
+            st.write("Download Data:")
             csv_data = df.to_csv(index=False)
             st.download_button(
                 label="Download as CSV",
@@ -533,6 +581,7 @@ if page == "Completed Orders":
         else:
             st.write("No orders found.")
 
+
 elif page == "Cancelled Orders":
     tab_1, tab_2, tab_3, tab_4 = st.tabs(["Add Order", "Search Orders", "View All Orders","Modify Orders"])
     with tab_1:
@@ -597,6 +646,7 @@ elif page == "Cancelled Orders":
             ship_company = st.text_input("Shipping Company")
             region = st.selectbox("Region", egypt_governorates)
             order_number = st.text_input("Order Code")
+            reason=st.selectbox("Reason",reasons)
 
             submit = st.form_submit_button("Add Cancelled Order")
 
@@ -623,6 +673,8 @@ elif page == "Cancelled Orders":
                     st.error("Region is required.")
                 elif not order_number.strip():
                     st.error("Order Number is required.")
+                elif not reason.strip():
+                    st.error("Reason is required.")
                 else:
                     conn = create_connection()
                     cursor = conn.cursor()
@@ -651,8 +703,8 @@ elif page == "Cancelled Orders":
                             )
                             customer_id = cursor.fetchone()[0]
                         cursor.execute(
-                            "INSERT INTO cancelled_orders (customer_id, ship_company, region, order_number) VALUES (%s, %s, %s, %s)",
-                            (customer_id, ship_company, region, order_number)
+                            "INSERT INTO cancelled_orders (customer_id, ship_company, region, order_number,reason) VALUES (%s, %s, %s, %s,%s)",
+                            (customer_id, ship_company, region, order_number,reason)
                         )
 
                         conn.commit()
@@ -682,7 +734,7 @@ elif page == "Cancelled Orders":
             cursor.execute(
                 f"""
                 SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                    c.email, o.ship_company, o.region
+                    c.email, o.ship_company, o.region,o.reason
                 FROM cancelled_orders o
                 INNER JOIN customers c ON o.customer_id = c.customer_id
                 WHERE {search_condition}
@@ -707,21 +759,29 @@ elif page == "Cancelled Orders":
         
         conn = create_connection()
         cursor = conn.cursor()
-
+        cursor.execute("SELECT DISTINCT ship_company FROM cancelled_orders")
+        ship_companies = [row[0] for row in cursor.fetchall()]
+        selected_ship_company = st.selectbox("Filter by Shipping Company", ["All"] + ship_companies)
         sort_column = "o.order_number"
         sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
         
         query = f"""
         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-            c.email, o.ship_company, o.region
+            c.email, o.ship_company, o.region, o.reason
         FROM cancelled_orders o
         INNER JOIN customers c ON o.customer_id = c.customer_id
-        ORDER BY {sort_column} {sort_direction}
         """
+        if selected_ship_company != "All":
+            query += f" WHERE o.ship_company = '{selected_ship_company}'"
+        
+        query += f" ORDER BY {sort_column} {sort_direction}"
+            
         cursor.execute(query)
         all_orders = cursor.fetchall()
         conn.close()
 
+        total_orders = len(all_orders)
+        
         if all_orders:
             data = []
             for order in all_orders:
@@ -733,10 +793,12 @@ elif page == "Cancelled Orders":
                     "Email": order[4],
                     "Shipping Company": order[5],
                     "Region": order[6],
+                    "Reason": order[7],
                 })
             df = pd.DataFrame(data)
             st.write("All Orders:")
             st.dataframe(df)
+            st.write(f"Total Orders: {total_orders}")
             st.write("Download Data:")
             
             csv_data = df.to_csv(index=False)
@@ -808,6 +870,7 @@ elif page == "Cancelled Orders":
             )
         else:
             st.write("No orders found.")
+
     with tab_4:
         st.header("Update or Remove Orders")
         
@@ -821,7 +884,7 @@ elif page == "Cancelled Orders":
             cursor.execute(
                 """
                 SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
-                    c.email, o.ship_company, o.region
+                    c.email, o.ship_company, o.region,o.reason
                 FROM cancelled_orders o
                 INNER JOIN customers c ON o.customer_id = c.customer_id
                 WHERE o.order_number = %s
@@ -836,21 +899,39 @@ elif page == "Cancelled Orders":
                 
                 st.subheader("Update Order")
                 with st.form("update_order_form"):
+                    new_name=st.text_input("Customer Name",value=order_details[1])
+                    new_phone1=st.text_input("Customer Phone 1",value=order_details[2])
+                    new_phone2=st.text_input("Customer Phone 1",value=order_details[3])
+                    new_email=st.text_input("Email",value=order_details[4])
                     new_ship_company = st.text_input("Shipping Company", value=order_details[5])
-                    new_region = st.text_input("Region", value=order_details[6])
-                    update_submit = st.form_submit_button("Update Order")
-
+                    new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
+                    new_reason = st.selectbox("Reason",reasons,index=reasons.index(order_details[7]))
+                    update_submit = st.form_submit_button("Update Order")    
                     if update_submit:
-                        cursor.execute(
-                            """
-                            UPDATE cancelled_orders
-                            SET ship_company = %s, region = %s
-                            WHERE order_number = %s
-                            """,
-                            (new_ship_company, new_region, search_order_number)
-                        )
-                        conn.commit()
-                        st.success("Order updated successfully!")
+                            cursor.execute(
+                                """
+                                UPDATE customers
+                                SET customer_name = %s, customer_phone_1 = %s, customer_phone_2 = %s, email = %s
+                                WHERE customer_id = (
+                                    SELECT customer_id 
+                                    FROM orders 
+                                    WHERE order_number = %s
+                                )
+                                """,
+                                (new_name, new_phone1, new_phone2, new_email, search_order_number)
+                            )
+                            
+                            cursor.execute(
+                                """
+                                UPDATE cancelled_orders
+                                SET ship_company = %s, region = %s,reason=%s
+                                WHERE order_number = %s
+                                """,
+                                (new_ship_company, new_region, reason, search_order_number)
+                            )
+
+                            conn.commit()
+                            st.success("Order updated successfully!")
 
                 st.subheader("Remove Order")
                 with st.form("delete_order_form"):
