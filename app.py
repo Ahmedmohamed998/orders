@@ -429,7 +429,7 @@ if page == "Completed Orders":
                 SUM(o.order_price) AS total_price
             FROM customers c
             INNER JOIN orders o ON c.customer_id = o.customer_id
-            GROUP BY c.customer_id, c.customer_name, c.customer_phone_1
+            GROUP BY c.customer_id, c.customer_name, c.customer_phone_1,c.email
             HAVING COUNT(o.order_number) > 1
             """
         )
@@ -478,7 +478,7 @@ if page == "Completed Orders":
             SUM(o.order_price) AS total_price
         FROM customers c
         INNER JOIN orders o ON c.customer_id = o.customer_id
-        GROUP BY c.customer_name, c.customer_phone_1
+        GROUP BY c.customer_name, c.customer_phone_1,c.email
         ORDER BY {sort_column} {sort_direction}
         """
         
