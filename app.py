@@ -905,7 +905,7 @@ elif page == "Cancelled Orders":
                     new_email=st.text_input("Email",value=order_details[4])
                     new_ship_company = st.text_input("Shipping Company", value=order_details[5])
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
-                    new_reason = st.selectbox("Reason",reasons,index=reasons.index(order_details[7]))
+                    new_reason = st.selectbox("Reason",reasons)
                     update_submit = st.form_submit_button("Update Order")    
                     if update_submit:
                             cursor.execute(
