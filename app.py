@@ -423,7 +423,7 @@ if page == "Completed Orders":
 
         cursor.execute(
             """
-            SELECT c.customer_name, c.customer_phone_1, 
+            SELECT c.customer_name, c.customer_phone_1,c.email,
                 ARRAY_AGG(o.order_number) AS order_numbers,
                 COUNT(o.order_number) AS order_count,
                 SUM(o.order_price) AS total_price
@@ -439,11 +439,12 @@ if page == "Completed Orders":
             data = []
             total_price = 0
             for row in multiple_orders:
-                customer_name, customer_phone_1, order_numbers, order_count, customer_total_price = row
+                customer_name, customer_phone_1,email, order_numbers, order_count, customer_total_price = row
                 total_price += customer_total_price
                 data.append({
                     "Customer Name": customer_name,
                     "Phone Number": customer_phone_1,
+                    "Email": email,
                     "Order Numbers": ", ".join(order_numbers),
                     "Order Count": order_count,
                     "Total Price": f"${customer_total_price:.2f}"
@@ -471,7 +472,7 @@ if page == "Completed Orders":
         sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
         
         query = f"""
-        SELECT c.customer_name, c.customer_phone_1, 
+        SELECT c.customer_name, c.customer_phone_1,c.email,
             ARRAY_AGG(o.order_number) AS order_numbers,
             COUNT(o.order_number) AS order_count,
             SUM(o.order_price) AS total_price
@@ -496,10 +497,11 @@ if page == "Completed Orders":
         if consolidated_orders:
             data = []
             for row in consolidated_orders:
-                customer_name, customer_phone_1, order_numbers, order_count, total_price = row
+                customer_name, customer_phone_1,email, order_numbers, order_count, total_price = row
                 data.append({
                     "Customer Name": customer_name,
                     "Phone Number": customer_phone_1,
+                    "Email": email,
                     "Order Numbers": ", ".join(order_numbers),
                     "Order Count": order_count,
                     "Total Price": f"${total_price:.2f}"
