@@ -279,54 +279,6 @@ if page == "Completed Orders":
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
             
-            def generate_pdf(dataframe):
-                from fpdf import FPDF
-            
-                class PDF(FPDF):
-                    def header(self):
-                        self.set_font("Arial", style="B", size=10)  
-                        self.cell(0, 8, "Order Data", border=False, ln=True, align="C")
-                        self.ln(6)
-            
-                pdf = PDF()
-                pdf.set_auto_page_break(auto=True, margin=10)  
-                pdf.add_page()
-            
-                pdf.set_font("Arial", size=8)
-            
-                total_width = 150  
-                min_col_width = 20 
-                max_col_width = 50  
-                max_widths = dataframe.applymap(lambda x: len(str(x))).max().values
-                total_max_width = sum(max_widths)
-                col_widths = [
-                    max(min_col_width, min(max_col_width, (max_width / total_max_width) * total_width))
-                    for max_width in max_widths
-                ]
-            
-                pdf.set_font("Arial", style="B", size=8)
-                for i, col in enumerate(dataframe.columns):
-                    pdf.cell(col_widths[i], 8, str(col), border=1, align="C") 
-                pdf.ln()
-            
-                pdf.set_font("Arial", size=7)  
-                for _, row in dataframe.iterrows():
-                    for i, cell in enumerate(row):
-                        cell_text = str(cell) if pd.notnull(cell) else "N/A"
-                        if len(cell_text) > 15:
-                            cell_text = cell_text[:12] + "..."
-                        pdf.cell(col_widths[i], 8, cell_text, border=1, align="C")  
-                    pdf.ln()
-            
-                return pdf.output(dest="S").encode("latin1")
-
-            pdf_data = generate_pdf(df)
-            st.download_button(
-                label="Download as PDF",
-                data=pdf_data,
-                file_name="orders.pdf",
-                mime="application/pdf"
-            )
         else:
             st.write("No orders found.")
 
@@ -532,54 +484,7 @@ if page == "Completed Orders":
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
             
-            def generate_pdf(dataframe):
-                from fpdf import FPDF
             
-                class PDF(FPDF):
-                    def header(self):
-                        self.set_font("Arial", style="B", size=10)  
-                        self.cell(0, 8, "Orders View Data", border=False, ln=True, align="C")
-                        self.ln(6)
-            
-                pdf = PDF()
-                pdf.set_auto_page_break(auto=True, margin=10)  
-                pdf.add_page()
-            
-                pdf.set_font("Arial", size=8)
-            
-                total_width = 150  
-                min_col_width = 20 
-                max_col_width = 50  
-                max_widths = dataframe.applymap(lambda x: len(str(x))).max().values
-                total_max_width = sum(max_widths)
-                col_widths = [
-                    max(min_col_width, min(max_col_width, (max_width / total_max_width) * total_width))
-                    for max_width in max_widths
-                ]
-            
-                pdf.set_font("Arial", style="B", size=8)
-                for i, col in enumerate(dataframe.columns):
-                    pdf.cell(col_widths[i], 8, str(col), border=1, align="C") 
-                pdf.ln()
-            
-                pdf.set_font("Arial", size=7)  
-                for _, row in dataframe.iterrows():
-                    for i, cell in enumerate(row):
-                        cell_text = str(cell) if pd.notnull(cell) else "N/A"
-                        if len(cell_text) > 15:
-                            cell_text = cell_text[:12] + "..."
-                        pdf.cell(col_widths[i], 8, cell_text, border=1, align="C")  
-                    pdf.ln()
-            
-                return pdf.output(dest="S").encode("latin1")
-
-            pdf_data = generate_pdf(df)
-            st.download_button(
-                label="Download as PDF",
-                data=pdf_data,
-                file_name="orders_view.pdf",
-                mime="application/pdf"
-            )
         else:
             st.write("No orders found.")
 
