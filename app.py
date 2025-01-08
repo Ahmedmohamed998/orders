@@ -3,6 +3,9 @@ import psycopg2
 import re
 import pandas as pd
 import io
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib import colors
 db_host = st.secrets["database"]["host"]
 db_user = st.secrets["database"]["user"]
 db_password = st.secrets["database"]["password"]
@@ -278,7 +281,49 @@ if page == "Completed Orders":
                 file_name="orders.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-            
+            def generate_pdf_with_reportlab(dataframe):
+                buffer = io.BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
+                
+                data = [dataframe.columns.tolist()] + dataframe.values.tolist()
+                
+                col_widths = [
+                    70,  
+                    100,  
+                    80,  
+                    80,  
+                    180,  
+                    100, 
+                    100,  
+                    80   
+                ]
+                
+                table = Table(data, colWidths=col_widths)
+                table.setStyle(
+                    TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ])
+                )
+                
+                elements = [table]
+                doc.build(elements)
+                
+                buffer.seek(0)
+                return buffer.read()
+
+            pdf_data = generate_pdf_with_reportlab(df)
+            st.download_button(
+                label="Download as PDF",
+                data=pdf_data,
+                file_name="orders.pdf",
+                mime="application/pdf"
+            )
+
         else:
             st.write("No orders found.")
 
@@ -483,7 +528,46 @@ if page == "Completed Orders":
                 file_name="orders_view.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-            
+            def generate_pdf_with_reportlab(dataframe):
+                buffer = io.BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))  
+                
+                data = [dataframe.columns.tolist()] + dataframe.values.tolist()
+                
+                col_widths = [
+                    100,  
+                    80,  
+                    200, 
+                    100, 
+                    100,  
+                    80    
+                ]
+                
+                table = Table(data, colWidths=col_widths)
+                table.setStyle(
+                    TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ])
+                )
+                
+                elements = [table]
+                doc.build(elements)
+                
+                buffer.seek(0)
+                return buffer.read()
+
+            pdf_data = generate_pdf_with_reportlab(df)
+            st.download_button(
+                label="Download as PDF",
+                data=pdf_data,
+                file_name="orders_view.pdf",
+                mime="application/pdf"
+            )
             
         else:
             st.write("No orders found.")
@@ -727,48 +811,42 @@ elif page == "Cancelled Orders":
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
             
-            def generate_pdf(dataframe):
-                from fpdf import FPDF
-            
-                class PDF(FPDF):
-                    def header(self):
-                        self.set_font("Arial", style="B", size=10)  
-                        self.cell(0, 8, "Order Data", border=False, ln=True, align="C")
-                        self.ln(6)
-            
-                pdf = PDF()
-                pdf.set_auto_page_break(auto=True, margin=10)  
-                pdf.add_page()
-            
-                pdf.set_font("Arial", size=8)
-            
-                total_width = 150  
-                min_col_width = 20 
-                max_col_width = 50  
-                max_widths = dataframe.applymap(lambda x: len(str(x))).max().values
-                total_max_width = sum(max_widths)
+            def generate_pdf_with_reportlab(dataframe):
+                buffer = io.BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=landscape(letter)) 
+                
+                data = [dataframe.columns.tolist()] + dataframe.values.tolist()
+                
                 col_widths = [
-                    max(min_col_width, min(max_col_width, (max_width / total_max_width) * total_width))
-                    for max_width in max_widths
+                    70,  
+                    100, 
+                    80,  
+                    80,  
+                    180,  
+                    100,  
+                    100,  
+                    80    
                 ]
-            
-                pdf.set_font("Arial", style="B", size=8)
-                for i, col in enumerate(dataframe.columns):
-                    pdf.cell(col_widths[i], 8, str(col), border=1, align="C") 
-                pdf.ln()
-            
-                pdf.set_font("Arial", size=7)  
-                for _, row in dataframe.iterrows():
-                    for i, cell in enumerate(row):
-                        cell_text = str(cell) if pd.notnull(cell) else "N/A"
-                        if len(cell_text) > 15:
-                            cell_text = cell_text[:12] + "..."
-                        pdf.cell(col_widths[i], 8, cell_text, border=1, align="C")  
-                    pdf.ln()
-            
-                return pdf.output(dest="S").encode("latin1")
+                
+                table = Table(data, colWidths=col_widths)
+                table.setStyle(
+                    TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ])
+                )
+                
+                elements = [table]
+                doc.build(elements)
+                
+                buffer.seek(0)
+                return buffer.read()
 
-            pdf_data = generate_pdf(df)
+            pdf_data = generate_pdf_with_reportlab(df)
             st.download_button(
                 label="Download as PDF",
                 data=pdf_data,
