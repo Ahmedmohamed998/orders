@@ -132,9 +132,9 @@ if page == "Completed Orders":
                     st.error("Region is required.")
                 elif not order_number.strip():
                     st.error("Order Number is required.")
-                elif order_price is None or order_price == 0:
+                elif order_price is None or order_price < 0:
                     st.error("Order Price is required.")
-                elif shipping_price is None or shipping_price == 0:
+                elif shipping_price is None or shipping_price < 0:
                     st.error("Shipping Price is required.")
                 elif hoodies is None or hoodies==0:
                     st.error("Number of Products is required.")
@@ -720,7 +720,7 @@ elif page == "Cancelled Orders":
                     st.error("Reason is required")
                 elif hoodies is None or hoodies==0:
                     st.error("Number Of Products is required.")
-                elif order_price is None or order_price==0:
+                elif order_price is None or order_price<0:
                     st.error("Order Price is required.")
                 else:
                     conn = create_connection()
@@ -1092,7 +1092,7 @@ elif page == "Returned Orders":
                     st.error("Reason is required.")
                 elif hoodies is None or hoodies==0:
                     st.error("Number Of Products is required.")
-                elif order_price is None or order_price==0:
+                elif order_price is None or order_price<0:
                     st.error("Order Price is required.")
                 else:
                     conn = create_connection()
@@ -1469,7 +1469,7 @@ elif page == "Shipping Problems":
                     st.error("Order Number is required.")
                 elif not status.strip():
                     st.error("Status is required.")
-                elif shipping_price is None or shipping_price==0:
+                elif shipping_price is None or shipping_price<0:
                     st.error("Order Price is required.")
                 elif hoodies is None or hoodies==0:
                     st.error("Number Of Products is required.")
