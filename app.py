@@ -32,7 +32,7 @@ egypt_governorates = [
         "Luxor", "Qena", "North Sinai", "Sohag"
     ]
 reasons=['Customer','Delivery Man']
-reasons_1=['Customer','Out Of Stock']
+reasons_1=['Customer','Out Of Stock','Team']
 Status=['Returned','Exchanged','Reshipping','Team']
 Options= ["No", "Yes"]
 if page == "Completed Orders":
