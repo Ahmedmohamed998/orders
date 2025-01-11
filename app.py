@@ -959,7 +959,7 @@ elif page == "Cancelled Orders":
                                 SET customer_name = %s, customer_phone_1 = %s, customer_phone_2 = %s, email = %s
                                 WHERE customer_id = (
                                     SELECT customer_id 
-                                    FROM orders 
+                                    FROM cancelled_orders 
                                     WHERE order_number = %s
                                 )
                                 """,
@@ -1337,7 +1337,7 @@ elif page == "Returned Orders":
                                 SET customer_name = %s, customer_phone_1 = %s, customer_phone_2 = %s, email = %s
                                 WHERE customer_id = (
                                     SELECT customer_id 
-                                    FROM orders 
+                                    FROM returned_orders 
                                     WHERE order_number = %s
                                 )
                                 """,
@@ -1577,7 +1577,7 @@ elif page == "Shipping Problems":
         all_orders = cursor.fetchall()
         total_query = """
         SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0)
-        FROM returned_orders o
+        FROM shipping o
         """
         cursor.execute(total_query)
         total_orders,total_products, total_price = cursor.fetchone()
@@ -1716,7 +1716,7 @@ elif page == "Shipping Problems":
                                 SET customer_name = %s, customer_phone_1 = %s, customer_phone_2 = %s, email = %s
                                 WHERE customer_id = (
                                     SELECT customer_id 
-                                    FROM orders 
+                                    FROM shipping
                                     WHERE order_number = %s
                                 )
                                 """,
