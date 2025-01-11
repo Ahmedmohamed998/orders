@@ -22,6 +22,22 @@ def create_connection():
 
 st.set_page_config(page_title="Orders System",layout='wide')
 st.title("Order Management System")
+st.markdown(
+    """
+    <style>
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 st.sidebar.title("Order Type")
 page = st.sidebar.radio("Select a page", ["Completed Orders", "Cancelled Orders","Returned Orders","Shipping Problems"])
 egypt_governorates = [
