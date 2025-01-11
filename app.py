@@ -33,7 +33,7 @@ egypt_governorates = [
     ]
 reasons=['Customer','Delivery Man']
 reasons_1=['Customer','Out Of Stock']
-Status=['Returned','Exchanged','ReShipd','Team']
+Status=['Returned','Exchanged','Reshipping','Team']
 Options= ["No", "Yes"]
 if page == "Completed Orders":
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Add Order", "Search Orders", "View All Orders","Modify Orders","Customers with Multiple Orders","Orders View"])
@@ -1576,7 +1576,7 @@ elif page == "Shipping Problems":
         cursor.execute(query)
         all_orders = cursor.fetchall()
         total_query = """
-        SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0)
+        SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.shipping_price), 0)
         FROM shipping o
         """
         cursor.execute(total_query)
