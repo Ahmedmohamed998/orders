@@ -33,7 +33,7 @@ egypt_governorates = [
     ]
 reasons=['Customer','Delivery Man']
 reasons_1=['Customer','Out Of Stock']
-status=['Returned','Exchanged','ReShipd','Team']
+Status=['Returned','Exchanged','ReShipd','Team']
 Options= ["No", "Yes"]
 if page == "Completed Orders":
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Add Order", "Search Orders", "View All Orders","Modify Orders","Customers with Multiple Orders","Orders View"])
@@ -1439,7 +1439,7 @@ elif page == "Shipping Problems":
             ship_company = st.text_input("Shipping Company")
             region = st.selectbox("Region", egypt_governorates)
             order_number = st.text_input("Order Code")
-            status=st.selectbox("Status",status)
+            status=st.selectbox("Status",Status)
             hoodies = st.number_input("Number Of Hoodies", min_value=0,step=1)
             shipping_price = st.number_input("Shipping Price", min_value=0,step=1)
             submit = st.form_submit_button("Add Order")
@@ -1705,7 +1705,7 @@ elif page == "Shipping Problems":
                     new_email=st.text_input("Email",value=order_details[4])
                     new_ship_company = st.text_input("Shipping Company", value=order_details[5])
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
-                    new_status = st.selectbox("Reason",status)
+                    new_status = st.selectbox("Reason",Status)
                     new_price=st.number_input("Shipping Price",value=order_details[8])
                     new_produtcs=st.number_input("Number Of Products",value=order_details[9])
                     update_submit = st.form_submit_button("Update Order")    
