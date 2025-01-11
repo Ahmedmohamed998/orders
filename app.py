@@ -23,7 +23,7 @@ def create_connection():
 st.set_page_config(page_title="Orders System",layout='wide')
 st.title("Order Management System")
 st.sidebar.title("Order Type")
-page = st.sidebar.radio("Select a page", ["Completed Orders", "Cancelled Orders","Returned Orders"])
+page = st.sidebar.radio("Select a page", ["Completed Orders", "Cancelled Orders","Returned Orders","Shipping Problems"])
 egypt_governorates = [
         "Cairo", "Alexandria", "Giza", "Dakahlia", "Red Sea", "Beheira",
         "Fayoum", "Gharbia", "Ismailia", "Menofia", "Minya", "Qaliubiya",
@@ -32,6 +32,8 @@ egypt_governorates = [
         "Luxor", "Qena", "North Sinai", "Sohag"
     ]
 reasons=['Customer','Delivery Man']
+reasons_1=['Customer','Out Of Stock']
+status=['Returned','Exchanged','ReShipd','Team']
 Options= ["No", "Yes"]
 if page == "Completed Orders":
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Add Order", "Search Orders", "View All Orders","Modify Orders","Customers with Multiple Orders","Orders View"])
@@ -101,7 +103,8 @@ if page == "Completed Orders":
             region = st.selectbox("Region",egypt_governorates)
             order_number = st.text_input("Order Code")
             hoodies = st.number_input("Number Of Hoodies", min_value=0,step=1)
-            order_price = st.number_input("Order Price", min_value=0.0, step=0.01)
+            order_price = st.number_input("Order Price", min_value=0, step=1)
+            shipping_price = st.number_input("Shipping Price", min_value=0, step=1)
             days_to_receive = st.number_input("Days to Receive Order",min_value=0,step=1)
             submit = st.form_submit_button("Add Order")
 
@@ -129,6 +132,12 @@ if page == "Completed Orders":
                     st.error("Region is required.")
                 elif not order_number.strip():
                     st.error("Order Number is required.")
+                elif order_price is None or order_price == 0:
+                    st.error("Order Price is required.")
+                elif shipping_price is None or shipping_price == 0:
+                    st.error("Shipping Price is required.")
+                elif hoodies is None or hoodies==0:
+                    st.error("Number of Products is required.")
                 else:
                     conn = create_connection()
                     cursor = conn.cursor()
@@ -158,8 +167,8 @@ if page == "Completed Orders":
                             customer_id = cursor.fetchone()[0]
 
                         cursor.execute(
-                            "INSERT INTO orders (customer_id, ship_company, region, order_price, order_number,days_to_receive,hoodies) VALUES (%s, %s, %s, %s, %s,%s,%s)",
-                            (customer_id, ship_company, region, order_price, order_number,days_to_receive,hoodies)
+                            "INSERT INTO orders (customer_id, ship_company, region, order_price, order_number,days_to_receive,hoodies,shipping_price) VALUES (%s, %s, %s, %s, %s,%s,%s,%s)",
+                            (customer_id, ship_company, region, order_price, order_number,days_to_receive,hoodies,shipping_price)
                         )
 
                         conn.commit()
@@ -191,7 +200,7 @@ if page == "Completed Orders":
             cursor.execute(
                 f"""
                 SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                    c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies
+                    c.email, o.ship_company, o.region, o.order_price,o.shipping_price,o.days_to_receive,o.hoodies
                 FROM orders o
                 INNER JOIN customers c ON o.customer_id = c.customer_id
                 WHERE {search_condition}
@@ -206,7 +215,7 @@ if page == "Completed Orders":
                 st.table(results)
                 total_price = sum(order[7] for order in results)
                 total_hoodies = sum(order[9] for order in results)
-                st.write(f"Total Amount Spent: ${total_price:.2f}")
+                st.write(f"Total Amount Spent: {total_price}")
                 st.write(f"Total Number of Products: {total_hoodies}")
             else:
                 st.write("No orders found for the given query.")
@@ -224,12 +233,12 @@ if page == "Completed Orders":
         cursor.execute("SELECT DISTINCT ship_company FROM orders")
         ship_companies = [row[0] for row in cursor.fetchall()]
         selected_ship_company = st.selectbox("Filter by Shipping Company", ["All"] + ship_companies)
-        sort_column = "o.order_number" if sort_by == "Order Code" else "o.order_price"
+        sort_column = "CAST(o.order_number AS INTEGER)" if sort_by == "Order Code" else "o.order_price"
         sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
         
         query = f"""
         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-            c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies
+            c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies,shipping_price
         FROM orders o
         INNER JOIN customers c ON o.customer_id = c.customer_id
         """
@@ -240,11 +249,11 @@ if page == "Completed Orders":
         cursor.execute(query)
         all_orders = cursor.fetchall()
 
-        total_query = "SELECT COUNT(*),COALESCE(SUM(hoodies),0), COALESCE(SUM(order_price), 0) FROM orders"
+        total_query = "SELECT COUNT(*),COALESCE(SUM(hoodies),0), COALESCE(SUM(order_price), 0), COALESCE(SUM(shipping_price), 0) FROM orders"
         if selected_ship_company != "All":
             total_query += f" WHERE ship_company = '{selected_ship_company}'"
         cursor.execute(total_query)
-        total_orders,total_hoodies,total_price = cursor.fetchone()
+        total_orders,total_hoodies,total_price,total_shipping_price = cursor.fetchone()
 
         conn.close()
 
@@ -259,7 +268,9 @@ if page == "Completed Orders":
                     "Email": order[4],
                     "Shipping Company": order[5],
                     "Region": order[6],
-                    "Order Price": f"${order[7]:.2f}",
+                    "Order Price": f"{order[7]}",
+                    "Order Profit": (order[7] or 0) - (order[10] or 0),
+                    "Shipping Price":order[10],
                     "Days to Receive":order[8],
                     "Number of Products":order[9]
                 })
@@ -267,7 +278,10 @@ if page == "Completed Orders":
             st.write("All Orders:")
             st.dataframe(df)
             st.write(f"**Total Orders:** {total_orders}")
-            st.write(f"**Total Price:** ${total_price:.2f}")
+            st.write(f"**Total Price:** {int(total_price):,}".replace(",", "."))
+            st.write(f"**Total Shipping Price:** {int(total_shipping_price):,}".replace(",", "."))
+            total_order_profit = df["Order Profit"].sum()
+            st.write(f"**Total Order Profit:** {int(total_order_profit):,}".replace(",", "."))
             st.write(f"**Total Products:** {total_hoodies}")
             st.write("Download Data:")
             
@@ -305,6 +319,7 @@ if page == "Completed Orders":
                     70,  
                     75,
                     20,
+                    15,
                     15,   
                 ]
                 
@@ -350,7 +365,7 @@ if page == "Completed Orders":
             cursor.execute(
                 """
                 SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
-                    c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies
+                    c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies,o.shipping_price
                 FROM orders o
                 INNER JOIN customers c ON o.customer_id = c.customer_id
                 WHERE o.order_number = %s
@@ -371,12 +386,8 @@ if page == "Completed Orders":
                     new_email=st.text_input("Email",value=order_details[4])
                     new_ship_company = st.text_input("Shipping Company", value=order_details[5])
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
-                    new_order_price = st.number_input(
-                        "Order Price", 
-                        value=float(order_details[7]),  
-                        min_value=0.0, 
-                        step=0.01
-                    )
+                    new_order_price = st.number_input("Order Price",value=order_details[7],min_value=0,step=1)
+                    new_shipping_price = st.number_input("Shipping Price",value=order_details[10],min_value=0,step=1)
                     new_days_to_receive=st.text_input("Days_to_receive",value=order_details[8])
                     new_hoodies=st.number_input("Number of Hoodies",value=order_details[9],min_value=0,step=1)
                     update_submit = st.form_submit_button("Update Order")
@@ -398,10 +409,10 @@ if page == "Completed Orders":
                             cursor.execute(
                                 """
                                 UPDATE orders
-                                SET ship_company = %s, region = %s, order_price = %s,days_to_receive=%s,hoodies=%s
+                                SET ship_company = %s, region = %s, order_price = %s,days_to_receive=%s,hoodies=%s,shipping_price=%s
                                 WHERE order_number = %s
                                 """,
-                                (new_ship_company, new_region, new_order_price, new_days_to_receive, new_hoodies, search_order_number)
+                                (new_ship_company, new_region, new_order_price, new_days_to_receive, new_hoodies, new_shipping_price,search_order_number)
                             )
 
                             conn.commit()
@@ -427,32 +438,44 @@ if page == "Completed Orders":
             conn.close()
     with tab5:
         st.header("Customers with Multiple Orders")
+
+        sort_by = st.selectbox("Sort by", ["Order Code", "Total Price"], key="sort_by_selectbox")
+        sort_order = st.radio("Sort order", ["Ascending", "Descending"], key="sort_order_selectbox")
+
         conn = create_connection()
         cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            SELECT c.customer_name, c.customer_phone_1,c.email,
-                ARRAY_AGG(o.order_number) AS order_numbers,
-                COUNT(o.order_number) AS order_count,
-                SUM(o.order_price) AS total_price,
-                SUM(o.hoodies) AS total_products
-            FROM customers c
-            INNER JOIN orders o ON c.customer_id = o.customer_id
-            GROUP BY c.customer_id, c.customer_name, c.customer_phone_1,c.email
-            HAVING COUNT(o.order_number) > 1
-            """
-        )
+        sort_column = "MIN(CAST(o.order_number AS INTEGER))" if sort_by == "Order Code" else "SUM(o.order_price)"
+        sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
+
+        query = f"""
+                SELECT c.customer_name, c.customer_phone_1, c.email,
+                    ARRAY_AGG(o.order_number ORDER BY o.order_number) AS order_numbers,
+                    COUNT(o.order_number) AS order_count,
+                    SUM(o.order_price) AS total_price,
+                    SUM(o.hoodies) AS total_products,
+                    SUM(o.shipping_price) AS total_shipping,
+                    ROUND(AVG(CAST(o.days_to_receive AS NUMERIC)), 2) AS avg_days_to_receive
+                FROM customers c
+                INNER JOIN orders o ON c.customer_id = o.customer_id
+                GROUP BY c.customer_name, c.customer_phone_1, c.email
+                HAVING COUNT(o.order_number) > 1
+                ORDER BY {sort_column} {sort_direction}
+                """
+
+        cursor.execute(query)
         multiple_orders = cursor.fetchall()
 
         if multiple_orders:
             data = []
             total_price = 0
             total_products = 0
+            total_shipping = 0
             for row in multiple_orders:
-                customer_name, customer_phone_1,email, order_numbers, order_count, customer_total_price,customer_total_products = row
-                customer_total_products = customer_total_products or 0 
+                customer_name, customer_phone_1, email, order_numbers, order_count, customer_total_price, customer_total_products,customer_total_shipping ,avg_days_to_receive = row
+                customer_total_products = customer_total_products or 0
                 total_price += customer_total_price
+                total_shipping += customer_total_shipping or 0
                 total_products += customer_total_products
                 data.append({
                     "Customer Name": customer_name,
@@ -460,19 +483,25 @@ if page == "Completed Orders":
                     "Email": email,
                     "Order Numbers": ", ".join(order_numbers),
                     "Order Count": order_count,
-                    "Total Price": f"${customer_total_price:.2f}",
-                    "Total Products": f"{customer_total_products}"
+                    "Total Price": f"{customer_total_price}",
+                    "Total Shipping Price": f"{customer_total_shipping}",
+                    "Total order Profit": f"{(customer_total_price or 0) - (customer_total_shipping or 0)}",
+                    "Total Products": f"{customer_total_products}",
+                    "Avg Days to Receive": avg_days_to_receive
                 })
             num_customers = len(multiple_orders)
             st.write("Customers with Multiple Orders:")
             st.dataframe(data)
             st.write(f"**Number of Customers with Multiple Orders:** {num_customers}")
-            st.write(f"**Total Price of Their Orders:** ${total_price:.2f}")
+            st.write(f"**Total Price:** {int(total_price):,}".replace(",", "."))
+            st.write(f"**Total Shipping Price:** {int(total_shipping):,}".replace(",", "."))
+            st.write(f"**Total Profit:** {int((total_price or 0)-(total_shipping or 0)):,}".replace(",", "."))
             st.write(f"**Total Products of Their Orders:** {total_products}")
         else:
             st.write("No customers with multiple orders found.")
 
         conn.close()
+
 
     with tab6:
         st.header("Orders View")
@@ -483,7 +512,7 @@ if page == "Completed Orders":
         conn = create_connection()
         cursor = conn.cursor()
         
-        sort_column = "ARRAY_AGG(o.order_number)" if sort_by == "Order Code" else "SUM(o.order_price)"
+        sort_column = "ARRAY_AGG(CAST(o.order_number AS INTEGER))" if sort_by == "Order Code" else "SUM(o.order_price)"
         sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
         
         query = f"""
@@ -491,7 +520,8 @@ if page == "Completed Orders":
             ARRAY_AGG(o.order_number) AS order_numbers,
             COUNT(o.order_number) AS order_count,
             SUM(o.order_price) AS total_price,
-            SUM(o.hoodies) AS total_product
+            SUM(o.hoodies) AS total_product,
+            SUM(o.shipping_price) AS total_shipping
         FROM customers c
         INNER JOIN orders o ON c.customer_id = o.customer_id
         GROUP BY c.customer_name, c.customer_phone_1,c.email
@@ -502,25 +532,27 @@ if page == "Completed Orders":
         consolidated_orders = cursor.fetchall()
 
         total_query = """
-        SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0)
+        SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0),COALESCE(SUM(o.shipping_price), 0)
         FROM orders o
         """
         cursor.execute(total_query)
-        total_orders,total_products, total_prices = cursor.fetchone()
+        total_orders,total_products, total_prices, total_shipping_prices = cursor.fetchone()
 
         conn.close()
 
         if consolidated_orders:
             data = []
             for row in consolidated_orders:
-                customer_name, customer_phone_1,email, order_numbers, order_count, total_price,total_product = row
+                customer_name, customer_phone_1,email, order_numbers, order_count, total_price,total_product,total_shipping = row
                 data.append({
                     "Customer Name": customer_name,
                     "Phone Number": customer_phone_1,
                     "Email": email,
                     "Order Numbers": ", ".join(order_numbers),
                     "Order Count": order_count,
-                    "Total Price": f"${total_price:.2f}",
+                    "Total Price": f"{total_price}",
+                    "Total Shipping Price": f"{total_shipping}",
+                    "Total Order Profit": f"{(total_price or 0) - (total_shipping or 0)}",
                     "Total Products": f"{total_product}"
                 })
             
@@ -528,7 +560,9 @@ if page == "Completed Orders":
             st.write("Orders:")
             st.dataframe(df)
             st.write(f"**Total Orders:** {total_orders}")
-            st.write(f"**Total Price:** ${total_prices:.2f}")
+            st.write(f"**Total Price:** {int(total_prices):,}".replace(",", "."))
+            st.write(f"**Total Shipping:** {int(total_shipping_prices):,}".replace(",", "."))
+            st.write(f"**Total Profit:** {int((total_prices or 0) - (total_shipping_prices or 0)):,}".replace(",", "."))
             st.write(f"**Total Products:** {total_products}")
             st.write("Download Data:")
             csv_data = df.to_csv(index=False)
@@ -658,6 +692,9 @@ elif page == "Cancelled Orders":
                     )
             region = st.selectbox("Region", egypt_governorates)
             order_number = st.text_input("Order Code")
+            hoodies = st.number_input("Number Of Hoodies", min_value=0,step=1)
+            order_price=st.number_input("Order Price",min_value=0,step=1)
+            cancelled_reason=st.selectbox("Reason",reasons_1)
             submit = st.form_submit_button("Add Cancelled Order")
 
             if submit:
@@ -679,6 +716,12 @@ elif page == "Cancelled Orders":
                     st.error("Region is required.")
                 elif not order_number.strip():
                     st.error("Order Number is required.")
+                elif not cancelled_reason.strip():
+                    st.error("Reason is required")
+                elif hoodies is None or hoodies==0:
+                    st.error("Number Of Products is required.")
+                elif order_price is None or order_price==0:
+                    st.error("Order Price is required.")
                 else:
                     conn = create_connection()
                     cursor = conn.cursor()
@@ -708,10 +751,10 @@ elif page == "Cancelled Orders":
                             customer_id = cursor.fetchone()[0]
                         cursor.execute( """
                                             INSERT INTO cancelled_orders 
-                                            (customer_id, region, order_number) 
-                                            VALUES (%s, %s, %s)
+                                            (customer_id, region, order_number,reason,hoodies,order_price) 
+                                            VALUES (%s, %s, %s,%s,%s,%s)
                                             """,
-                                            (customer_id, region, order_number),
+                                            (customer_id, region, order_number,cancelled_reason,hoodies,order_price),
                                         )
                         conn.commit()
                         st.success("Cancelled order added successfully!")
@@ -740,7 +783,7 @@ elif page == "Cancelled Orders":
             cursor.execute(
                 f"""
                 SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                    c.email,o.region
+                    c.email,o.region,o.reason,o.hoodies,o.order_price
                 FROM cancelled_orders o
                 INNER JOIN customers c ON o.customer_id = c.customer_id
                 WHERE {search_condition}
@@ -765,29 +808,27 @@ elif page == "Cancelled Orders":
         
         conn = create_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT ship_company FROM cancelled_orders")
-        ship_companies = [row[0] for row in cursor.fetchall()]
-        selected_ship_company = st.selectbox("Filter by Shipping Company", ["All"] + ship_companies)
-        sort_column = "o.order_number"
+        sort_column = "CAST(o.order_number AS INTEGER)"
         sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
         
         query = f"""
         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-            c.email,o.region
+            c.email,o.region,o.reason,o.hoodies,o.order_price
         FROM cancelled_orders o
         INNER JOIN customers c ON o.customer_id = c.customer_id
         """
-        if selected_ship_company != "All":
-            query += f" WHERE o.ship_company = '{selected_ship_company}'"
-        
         query += f" ORDER BY {sort_column} {sort_direction}"
-            
+        
         cursor.execute(query)
         all_orders = cursor.fetchall()
-        conn.close()
-
-        total_orders = len(all_orders)
-        
+        total_query = "COALESCE(SUM(hoodies),0), COALESCE(SUM(order_price), 0) FROM orders"
+        total_query = """
+        SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0)
+        FROM cancelled_orders o
+        """
+        cursor.execute(total_query)
+        total_orders,total_products, total_price = cursor.fetchone()
+        conn.close()        
         if all_orders:
             data = []
             for order in all_orders:
@@ -798,13 +839,17 @@ elif page == "Cancelled Orders":
                     "Phone 2": order[3],
                     "Email": order[4],
                     "Region": order[5],
+                    "Reason":order[6],
+                    "Number of Hoodies":order[7],
+                    "Order Price":order[8],
                 })
             df = pd.DataFrame(data)
             st.write("All Orders:")
             st.dataframe(df)
-            st.write(f"Total Orders: {total_orders}")
+            st.write(f"**Total Orders:** {total_orders}")
+            st.write(f"**Total Price:** {int(total_price):,}".replace(",", "."))
+            st.write(f"**Total Products:** {total_products}")           
             st.write("Download Data:")
-            
             csv_data = df.to_csv(index=False)
             st.download_button(
                 label="Download as CSV",
@@ -837,6 +882,9 @@ elif page == "Cancelled Orders":
                     80,  
                     180,  
                     100,
+                    80,
+                    80,
+                    80,
                 ]
                 
                 table = Table(data, colWidths=col_widths)
@@ -880,7 +928,7 @@ elif page == "Cancelled Orders":
             cursor.execute(
                 """
                 SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
-                    c.email, o.region
+                    c.email, o.region,o.reason,o.hoodies,o.order_price
                 FROM cancelled_orders o
                 INNER JOIN customers c ON o.customer_id = c.customer_id
                 WHERE o.order_number = %s
@@ -900,6 +948,9 @@ elif page == "Cancelled Orders":
                     new_phone2=st.text_input("Customer Phone 1",value=order_details[3])
                     new_email=st.text_input("Email",value=order_details[4])
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[5]))
+                    new_cancel_reason=st.selectbox("Reason",reasons_1)
+                    new_cancel_hoodies=st.number_input("Number Of Products",value=order_details[7])
+                    new_cancel_price=st.number_input("Order Price",value=order_details[8])
                     update_submit = st.form_submit_button("Update Order")    
                     if update_submit:
                             cursor.execute(
@@ -918,10 +969,10 @@ elif page == "Cancelled Orders":
                             cursor.execute(
                                 """
                                 UPDATE cancelled_orders
-                                SET region = %s
+                                SET region = %s,reason=%s,hoodies=%s,order_price=%s
                                 WHERE order_number = %s
                                 """,
-                                (new_region, search_order_number)
+                                (new_region, new_cancel_reason, new_cancel_hoodies, new_cancel_price, search_order_number)
                             )
 
                             conn.commit()
@@ -1010,8 +1061,9 @@ elif page == "Returned Orders":
             region = st.selectbox("Region", egypt_governorates)
             order_number = st.text_input("Order Code")
             reason=st.selectbox("Reason",reasons)
-
-            submit = st.form_submit_button("Add Cancelled Order")
+            hoodies = st.number_input("Number Of Hoodies", min_value=0,step=1)
+            order_price = st.number_input("Order Price", min_value=0,step=1)
+            submit = st.form_submit_button("Add Returned Order")
 
             if submit:
                 if not customer_name.strip():
@@ -1038,6 +1090,10 @@ elif page == "Returned Orders":
                     st.error("Order Number is required.")
                 elif not reason.strip():
                     st.error("Reason is required.")
+                elif hoodies is None or hoodies==0:
+                    st.error("Number Of Products is required.")
+                elif order_price is None or order_price==0:
+                    st.error("Order Price is required.")
                 else:
                     conn = create_connection()
                     cursor = conn.cursor()
@@ -1066,12 +1122,12 @@ elif page == "Returned Orders":
                             )
                             customer_id = cursor.fetchone()[0]
                         cursor.execute(
-                            "INSERT INTO returned_orders (customer_id, ship_company, region, order_number,reason) VALUES (%s, %s, %s, %s,%s)",
-                            (customer_id, ship_company, region, order_number,reason)
+                            "INSERT INTO returned_orders (customer_id, ship_company, region, order_number,reason,hoodies,order_price) VALUES (%s, %s, %s, %s,%s,%s,%s)",
+                            (customer_id, ship_company, region, order_number,reason,hoodies,order_price)
                         )
 
                         conn.commit()
-                        st.success("Cancelled order added successfully!")
+                        st.success("Returned order added successfully!")
 
                     conn.close()
     with tab_2:
@@ -1097,7 +1153,7 @@ elif page == "Returned Orders":
             cursor.execute(
                 f"""
                 SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                    c.email, o.ship_company, o.region,o.reason
+                    c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price
                 FROM returned_orders o
                 INNER JOIN customers c ON o.customer_id = c.customer_id
                 WHERE {search_condition}
@@ -1112,7 +1168,6 @@ elif page == "Returned Orders":
                 st.table(results)
             else:
                 st.write("No orders found for the given query.")
-
             conn.close()
     with tab_3:
         st.header("All Orders")
@@ -1125,12 +1180,12 @@ elif page == "Returned Orders":
         cursor.execute("SELECT DISTINCT ship_company FROM returned_orders")
         ship_companies = [row[0] for row in cursor.fetchall()]
         selected_ship_company = st.selectbox("Filter by Shipping Company", ["All"] + ship_companies)
-        sort_column = "o.order_number"
+        sort_column = "CAST(o.order_number AS INTEGER)"
         sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
         
         query = f"""
         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-            c.email, o.ship_company, o.region, o.reason
+            c.email, o.ship_company, o.region, o.reason,o.hoodies,o.order_price
         FROM returned_orders o
         INNER JOIN customers c ON o.customer_id = c.customer_id
         """
@@ -1141,9 +1196,13 @@ elif page == "Returned Orders":
             
         cursor.execute(query)
         all_orders = cursor.fetchall()
+        total_query = """
+        SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0)
+        FROM returned_orders o
+        """
+        cursor.execute(total_query)
+        total_orders,total_products, total_price = cursor.fetchone()
         conn.close()
-
-        total_orders = len(all_orders)
         
         if all_orders:
             data = []
@@ -1157,13 +1216,16 @@ elif page == "Returned Orders":
                     "Shipping Company": order[5],
                     "Region": order[6],
                     "Reason": order[7],
+                    "Number Of Products":order[8],
+                    "Order Price":order[9]
                 })
             df = pd.DataFrame(data)
             st.write("All Orders:")
             st.dataframe(df)
-            st.write(f"Total Orders: {total_orders}")
+            st.write(f"**Total Orders:** {total_orders}")
+            st.write(f"**Total Price:** {int(total_price):,}".replace(",", "."))
+            st.write(f"**Total Products:** {total_products}")            
             st.write("Download Data:")
-            
             csv_data = df.to_csv(index=False)
             st.download_button(
                 label="Download as CSV",
@@ -1197,7 +1259,9 @@ elif page == "Returned Orders":
                     180,  
                     100,  
                     100,  
-                    80    
+                    30,
+                    30,
+                    30,
                 ]
                 
                 table = Table(data, colWidths=col_widths)
@@ -1241,7 +1305,7 @@ elif page == "Returned Orders":
             cursor.execute(
                 """
                 SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
-                    c.email, o.ship_company, o.region,o.reason
+                    c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price
                 FROM returned_orders o
                 INNER JOIN customers c ON o.customer_id = c.customer_id
                 WHERE o.order_number = %s
@@ -1263,6 +1327,8 @@ elif page == "Returned Orders":
                     new_ship_company = st.text_input("Shipping Company", value=order_details[5])
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
                     new_reason = st.selectbox("Reason",reasons)
+                    new_number_of_hoodies=st.number_input("Number Of Products",value=order_details[8])
+                    new_price=st.number_input("Order Price",value=order_details[9])
                     update_submit = st.form_submit_button("Update Order")    
                     if update_submit:
                             cursor.execute(
@@ -1281,10 +1347,10 @@ elif page == "Returned Orders":
                             cursor.execute(
                                 """
                                 UPDATE returned_orders
-                                SET ship_company = %s, region = %s,reason=%s
+                                SET ship_company = %s, region = %s,reason=%s,hoodies=%s,order_price=%s
                                 WHERE order_number = %s
                                 """,
-                                (new_ship_company, new_region, new_reason, search_order_number)
+                                (new_ship_company, new_region, new_reason, new_number_of_hoodies, new_price, search_order_number)
                             )
 
                             conn.commit()
@@ -1299,6 +1365,385 @@ elif page == "Returned Orders":
                         if delete_password == "admin":
                             cursor.execute(
                                 "DELETE FROM returned_orders WHERE order_number = %s", (search_order_number,)
+                            )
+                            conn.commit()
+                            st.success("Order deleted successfully!")
+                        else:
+                            st.error("Incorrect password. Order deletion canceled.")
+            else:
+                st.write("No order found with the given Order Number.")
+            
+            conn.close()
+
+elif page == "Shipping Problems":
+    tab_1, tab_2, tab_3, tab_4 = st.tabs(["Add Order", "Search Orders", "View All Orders","Modify Orders"])
+    with tab_1:
+        st.header("Add Order")
+        def correct_phone_number(phone):
+            if re.search(r"[^\d]", phone):
+                phone = re.sub(r"[^\d]", "", phone)
+                return phone, False, True
+            elif not phone.startswith("01"):
+                phone = "01" + phone
+                return phone, False, True
+            if len(phone) == 11:
+                return phone, True, True
+            else:
+                return phone, False, False
+        def correct_email(email):
+            if ' ' in email:
+                email = re.sub(r"\s+", "", email)
+                return email, False
+            else:
+                return email, True
+
+        def contains_arabic(text):
+            return bool(re.search(r'[\u0600-\u06FF]', text))
+
+        with st.form("returned_order_form"):
+            customer_name = st.text_input("Customer Name")
+            customer_phone_1 = st.text_input("Customer Phone 1")
+            corrected_phone_1, is_valid_1, is_valid_11 = correct_phone_number(customer_phone_1)
+            if customer_phone_1:
+                if not is_valid_11:
+                    st.markdown(
+                        f"<div style='color: red;'>(Invalid Length): {corrected_phone_1}</div>",
+                        unsafe_allow_html=True,
+                    )
+                elif not is_valid_1:
+                    st.markdown(
+                        f"<div style='color: orange;'>Corrected Phone 1 (Invalid Format): {corrected_phone_1}</div>",
+                        unsafe_allow_html=True,
+                    )
+            customer_phone_2 = st.text_input("Customer Phone 2 (Optional)", value="")
+            corrected_phone_2, is_valid_2, is_valid_22 = correct_phone_number(customer_phone_2)
+            if customer_phone_2:
+                if not is_valid_22:
+                    st.markdown(
+                        f"<div style='color: red;'>(Invalid Length): {corrected_phone_2}</div>",
+                        unsafe_allow_html=True,
+                    )
+                elif not is_valid_2:
+                    st.markdown(
+                        f"<div style='color: orange;'>Corrected Phone 2 (Invalid Format): {corrected_phone_2}</div>",
+                        unsafe_allow_html=True,
+                    )
+            email = st.text_input("Email (Optional)", value="")
+            corrected_email, is_valid_email = correct_email(email)
+            if email:
+                if not is_valid_email:
+                    st.markdown(
+                        f"<div style='color: orange;'>Corrected email (Invalid Format): {corrected_email}</div>",
+                        unsafe_allow_html=True,
+                    )
+            ship_company = st.text_input("Shipping Company")
+            region = st.selectbox("Region", egypt_governorates)
+            order_number = st.text_input("Order Code")
+            status=st.selectbox("Status",status)
+            hoodies = st.number_input("Number Of Hoodies", min_value=0,step=1)
+            shipping_price = st.number_input("Shipping Price", min_value=0,step=1)
+            submit = st.form_submit_button("Add Order")
+
+            if submit:
+                if not customer_name.strip():
+                    st.error("Customer Name is required.")
+                elif contains_arabic(customer_name):
+                    st.error("Customer Name cannot contain Arabic characters.")
+                elif not customer_phone_1.strip():
+                    st.error("Customer Phone 1 is required.")
+                elif not is_valid_1:
+                    st.error("Customer Phone 1 is invalid. Please correct the number.")
+                elif customer_phone_2 and not is_valid_2:
+                    st.error("Customer Phone 2 is invalid. Please correct the number.")
+                elif email and not is_valid_email:
+                    st.error("Email is invalid. Please correct the email.")
+                elif contains_arabic(ship_company):
+                    st.error("Shipping Company cannot contain Arabic characters.")
+                elif contains_arabic(region):
+                    st.error("Region cannot contain Arabic characters.")
+                elif not ship_company.strip():
+                    st.error("Shipping Company is required.")
+                elif not region.strip():
+                    st.error("Region is required.")
+                elif not order_number.strip():
+                    st.error("Order Number is required.")
+                elif not status.strip():
+                    st.error("Status is required.")
+                elif shipping_price is None or shipping_price==0:
+                    st.error("Order Price is required.")
+                elif hoodies is None or hoodies==0:
+                    st.error("Number Of Products is required.")
+                else:
+                    conn = create_connection()
+                    cursor = conn.cursor()
+
+                    cursor.execute(
+                        "SELECT 1 FROM shipping WHERE order_number = %s",
+                        (order_number,)
+                    )
+                    existing_order = cursor.fetchone()
+
+                    if existing_order:
+                        st.error("Order Number already exists. Please enter a unique Order Number.")
+                    else:
+                        cursor.execute(
+                            "SELECT customer_id FROM customers WHERE customer_phone_1 = %s",
+                            (corrected_phone_1,)
+                        )
+                        customer = cursor.fetchone()
+
+                        if customer:
+                            customer_id = customer[0]
+                        else:
+                            cursor.execute(
+                                "INSERT INTO customers (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
+                                (customer_name, corrected_phone_1, corrected_phone_2, corrected_email)
+                            )
+                            customer_id = cursor.fetchone()[0]
+                        cursor.execute(
+                            "INSERT INTO shipping (customer_id, ship_company, region, order_number,status,shipping_price) VALUES (%s, %s, %s, %s,%s,%s)",
+                            (customer_id, ship_company, region, order_number,status,shipping_price)
+                        )
+
+                        conn.commit()
+                        st.success("order added successfully!")
+
+                    conn.close()
+    with tab_2:
+        st.header("Search Orders")
+        search_option = st.radio("Search by", ("Order Code", "Customer Phone 1", "Name", "Email"))
+        search_query = st.text_input("Enter Search Term")
+
+        if search_query:
+            conn = create_connection()
+            cursor = conn.cursor()
+
+            if search_option == "Order Code":
+                search_condition = "o.order_number = %s"
+            elif search_option == "Customer Phone 1":
+                search_condition = "c.customer_phone_1 = %s"
+            elif search_option == "Name":
+                search_condition = "c.customer_name ILIKE %s"
+                search_query = f"%{search_query}%" 
+            else:
+                search_condition = "c.email ILIKE %s"
+                search_query = f"%{search_query}%"
+
+            cursor.execute(
+                f"""
+                SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
+                    c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies
+                FROM shipping o
+                INNER JOIN customers c ON o.customer_id = c.customer_id
+                WHERE {search_condition}
+                """,
+                (search_query,)
+            )
+
+            results = cursor.fetchall()
+
+            if results:
+                st.write("Search Results:")
+                st.table(results)
+            else:
+                st.write("No orders found for the given query.")
+            conn.close()
+    with tab_3:
+        st.header("All Orders")
+        
+        sort_by = st.selectbox("Sort by", ["Order Code"])
+        sort_order = st.radio("Sort orders", ["Ascending", "Descending"])
+        
+        conn = create_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT ship_company FROM shipping")
+        ship_companies = [row[0] for row in cursor.fetchall()]
+        selected_ship_company = st.selectbox("Filter by Shipping Company", ["All"] + ship_companies)
+        sort_column = "CAST(o.order_number AS INTEGER)"
+        sort_direction = "ASC" if sort_order == "Ascending" else "DESC"
+        
+        query = f"""
+        SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
+            c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies
+        FROM shipping o
+        INNER JOIN customers c ON o.customer_id = c.customer_id
+        """
+        if selected_ship_company != "All":
+            query += f" WHERE o.ship_company = '{selected_ship_company}'"
+        
+        query += f" ORDER BY {sort_column} {sort_direction}"
+            
+        cursor.execute(query)
+        all_orders = cursor.fetchall()
+        total_query = """
+        SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0)
+        FROM returned_orders o
+        """
+        cursor.execute(total_query)
+        total_orders,total_products, total_price = cursor.fetchone()
+        conn.close()
+        
+        if all_orders:
+            data = []
+            for order in all_orders:
+                data.append({
+                    "Order Number": order[0],
+                    "Customer Name": order[1],
+                    "Phone 1": order[2],
+                    "Phone 2": order[3],
+                    "Email": order[4],
+                    "Shipping Company": order[5],
+                    "Region": order[6],
+                    "Status": order[7],
+                    "Shipping Price":order[8],
+                    "Number of Products":order[9]
+                })
+            df = pd.DataFrame(data)
+            st.write("All Orders:")
+            st.dataframe(df)
+            st.write(f"**Total Orders:** {total_orders}")
+            st.write(f"**Total Price:** {int(total_price):,}".replace(",", "."))
+            st.write(f"**Total Products:** {total_products}")       
+            st.write("Download Data:")
+            csv_data = df.to_csv(index=False)
+            st.download_button(
+                label="Download as CSV",
+                data=csv_data,
+                file_name="orders.csv",
+                mime="text/csv"
+            )
+            
+            excel_data = io.BytesIO()
+            with pd.ExcelWriter(excel_data, engine="xlsxwriter") as writer:
+                df.to_excel(writer, index=False, sheet_name="Orders")
+            excel_data.seek(0)
+            st.download_button(
+                label="Download as Excel",
+                data=excel_data,
+                file_name="orders.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+            
+            def generate_pdf_with_reportlab(dataframe):
+                buffer = io.BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=landscape(letter)) 
+                
+                data = [dataframe.columns.tolist()] + dataframe.values.tolist()
+                
+                col_widths = [
+                    70,  
+                    100, 
+                    80,  
+                    80,  
+                    180,  
+                    100,  
+                    100,  
+                    30,
+                    30,
+                    30,
+                ]
+                
+                table = Table(data, colWidths=col_widths)
+                table.setStyle(
+                    TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ])
+                )
+                
+                elements = [table]
+                doc.build(elements)
+                
+                buffer.seek(0)
+                return buffer.read()
+
+            pdf_data = generate_pdf_with_reportlab(df)
+            st.download_button(
+                label="Download as PDF",
+                data=pdf_data,
+                file_name="orders.pdf",
+                mime="application/pdf"
+            )
+        else:
+            st.write("No orders found.")
+
+    with tab_4:
+        st.header("Update or Remove Orders")
+        
+        st.subheader("Select an Order")
+        search_order_number = st.text_input("Enter Order Code")
+
+        if search_order_number:
+            conn = create_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                """
+                SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
+                    c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies
+                FROM shipping o
+                INNER JOIN customers c ON o.customer_id = c.customer_id
+                WHERE o.order_number = %s
+                """,
+                (search_order_number,)
+            )
+            order_details = cursor.fetchone()
+
+            if order_details:
+                st.write("Order Details:")
+                st.table([order_details])
+                
+                st.subheader("Update Order")
+                with st.form("update_order_form"):
+                    new_name=st.text_input("Customer Name",value=order_details[1])
+                    new_phone1=st.text_input("Customer Phone 1",value=order_details[2])
+                    new_phone2=st.text_input("Customer Phone 1",value=order_details[3])
+                    new_email=st.text_input("Email",value=order_details[4])
+                    new_ship_company = st.text_input("Shipping Company", value=order_details[5])
+                    new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
+                    new_status = st.selectbox("Reason",status)
+                    new_price=st.number_input("Shipping Price",value=order_details[8])
+                    new_produtcs=st.number_input("Number Of Products",value=order_details[9])
+                    update_submit = st.form_submit_button("Update Order")    
+                    if update_submit:
+                            cursor.execute(
+                                """
+                                UPDATE customers
+                                SET customer_name = %s, customer_phone_1 = %s, customer_phone_2 = %s, email = %s
+                                WHERE customer_id = (
+                                    SELECT customer_id 
+                                    FROM orders 
+                                    WHERE order_number = %s
+                                )
+                                """,
+                                (new_name, new_phone1, new_phone2, new_email, search_order_number)
+                            )
+                            
+                            cursor.execute(
+                                """
+                                UPDATE shipping
+                                SET ship_company = %s, region = %s,status=%s,shipping_price=%s,hoodies=%s
+                                WHERE order_number = %s
+                                """,
+                                (new_ship_company, new_region, new_status,new_price, new_produtcs, search_order_number)
+                            )
+
+                            conn.commit()
+                            st.success("Order updated successfully!")
+
+                st.subheader("Remove Order")
+                with st.form("delete_order_form"):
+                    delete_password = st.text_input("Enter Password to Confirm Deletion", type="password")
+                    delete_submit = st.form_submit_button("Delete Order")
+
+                    if delete_submit:
+                        if delete_password == "admin":
+                            cursor.execute(
+                                "DELETE FROM shipping WHERE order_number = %s", (search_order_number,)
                             )
                             conn.commit()
                             st.success("Order deleted successfully!")
