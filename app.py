@@ -49,6 +49,7 @@ egypt_governorates = [
     ]
 reasons=['Customer','Delivery Man']
 reasons_1=['Customer','Out Of Stock','Team']
+reasons_2=['Customer','Delivery Man','Team']
 Status=['Returned','Exchanged','Reshipping','Team']
 Options= ["No", "Yes"]
 if page == "Completed Orders":
@@ -285,8 +286,8 @@ if page == "Completed Orders":
                     "Shipping Company": order[5],
                     "Region": order[6],
                     "Order Price": f"{order[7]}",
-                    "Order Profit": (order[7] or 0) - (order[10] or 0),
                     "Shipping Price":order[10],
+                    "Order Profit": (order[7] or 0) - (order[10] or 0),
                     "Days to Receive":order[8],
                     "Number of Products":order[9]
                 })
@@ -1457,6 +1458,7 @@ elif page == "Shipping Problems":
             order_number = st.text_input("Order Code")
             status=st.selectbox("Status",Status)
             hoodies = st.number_input("Number Of Hoodies", min_value=0,step=1)
+            problem_reason=st.selectbox("Reason",reasons_2)
             shipping_price = st.number_input("Shipping Price", min_value=0,step=1)
             submit = st.form_submit_button("Add Order")
 
@@ -1489,6 +1491,8 @@ elif page == "Shipping Problems":
                     st.error("Order Price is required.")
                 elif hoodies is None or hoodies==0:
                     st.error("Number Of Products is required.")
+                elif not problem_reason.strip():
+                    st.error('Reason is required')
                 else:
                     conn = create_connection()
                     cursor = conn.cursor()
@@ -1517,8 +1521,8 @@ elif page == "Shipping Problems":
                             )
                             customer_id = cursor.fetchone()[0]
                         cursor.execute(
-                            "INSERT INTO shipping (customer_id, ship_company, region, order_number,status,shipping_price) VALUES (%s, %s, %s, %s,%s,%s)",
-                            (customer_id, ship_company, region, order_number,status,shipping_price)
+                            "INSERT INTO shipping (customer_id, ship_company, region, order_number,status,shipping_price,reason) VALUES (%s, %s, %s, %s,%s,%s,%s)",
+                            (customer_id, ship_company, region, order_number,status,shipping_price,problem_reason)
                         )
 
                         conn.commit()
@@ -1548,7 +1552,7 @@ elif page == "Shipping Problems":
             cursor.execute(
                 f"""
                 SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                    c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies
+                    c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies,o.reason
                 FROM shipping o
                 INNER JOIN customers c ON o.customer_id = c.customer_id
                 WHERE {search_condition}
@@ -1580,7 +1584,7 @@ elif page == "Shipping Problems":
         
         query = f"""
         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-            c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies
+            c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies,o.reason
         FROM shipping o
         INNER JOIN customers c ON o.customer_id = c.customer_id
         """
@@ -1611,6 +1615,7 @@ elif page == "Shipping Problems":
                     "Shipping Company": order[5],
                     "Region": order[6],
                     "Status": order[7],
+                    "Reason":order[10],
                     "Shipping Price":order[8],
                     "Number of Products":order[9]
                 })
@@ -1700,7 +1705,7 @@ elif page == "Shipping Problems":
             cursor.execute(
                 """
                 SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
-                    c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies
+                    c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies,o.reason
                 FROM shipping o
                 INNER JOIN customers c ON o.customer_id = c.customer_id
                 WHERE o.order_number = %s
@@ -1721,9 +1726,10 @@ elif page == "Shipping Problems":
                     new_email=st.text_input("Email",value=order_details[4])
                     new_ship_company = st.text_input("Shipping Company", value=order_details[5])
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
-                    new_status = st.selectbox("Reason",Status)
+                    new_status = st.selectbox("Status",Status)
                     new_price=st.number_input("Shipping Price",value=order_details[8])
                     new_produtcs=st.number_input("Number Of Products",value=order_details[9])
+                    new_problem_reason= st.selectbox("Reason",reasons_2)
                     update_submit = st.form_submit_button("Update Order")    
                     if update_submit:
                             cursor.execute(
@@ -1742,10 +1748,10 @@ elif page == "Shipping Problems":
                             cursor.execute(
                                 """
                                 UPDATE shipping
-                                SET ship_company = %s, region = %s,status=%s,shipping_price=%s,hoodies=%s
+                                SET ship_company = %s, region = %s,status=%s,shipping_price=%s,hoodies=%s,reason=%s
                                 WHERE order_number = %s
                                 """,
-                                (new_ship_company, new_region, new_status,new_price, new_produtcs, search_order_number)
+                                (new_ship_company, new_region, new_status,new_price, new_produtcs, new_problem_reason, search_order_number)
                             )
 
                             conn.commit()
