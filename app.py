@@ -1521,8 +1521,8 @@ elif page == "Shipping Problems":
                             )
                             customer_id = cursor.fetchone()[0]
                         cursor.execute(
-                            "INSERT INTO shipping (customer_id, ship_company, region, order_number,status,shipping_price,reason) VALUES (%s, %s, %s, %s,%s,%s,%s)",
-                            (customer_id, ship_company, region, order_number,status,shipping_price,problem_reason)
+                            "INSERT INTO shipping (customer_id, ship_company, region, order_number,status,shipping_price,reason,hoodies) VALUES (%s, %s, %s, %s,%s,%s,%s)",
+                            (customer_id, ship_company, region, order_number,status,shipping_price,problem_reason,hoodies)
                         )
 
                         conn.commit()
