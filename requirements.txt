@@ -4,3 +4,4 @@ regex
 pandas
 xlsxwriter
 reportlab
+streamlit-aggrid
