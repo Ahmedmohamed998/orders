@@ -6,6 +6,7 @@ import io
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 db_host = st.secrets["database"]["host"]
 db_user = st.secrets["database"]["user"]
 db_password = st.secrets["database"]["password"]
@@ -51,7 +52,7 @@ reasons_2=['Customer','Delivery Man','Team']
 Status=['Returned','Exchanged','Reshipping','Team']
 Options= ["No", "Yes"]
 if page == "Completed Orders":
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Add Order", "Search Orders", "View All Orders","Modify Orders","Customers with Multiple Orders","Orders View"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Add Order", "Search Orders", "View All Orders","Modify Orders","Customers with Multiple Orders","Orders View","Delete Orders"])
     with tab1:
         st.header("Add New Order")
         with st.form("order_form"):
@@ -642,6 +643,87 @@ if page == "Completed Orders":
             
         else:
             st.write("No orders found.")
+
+
+    with tab7:
+        st.write("### Manage All Orders")
+        
+        query = """
+        SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
+            c.email, o.ship_company, o.region, o.order_price, o.days_to_receive, 
+            o.hoodies, o.shipping_price
+        FROM orders o
+        INNER JOIN customers c ON o.customer_id = c.customer_id
+        """
+        
+        with create_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            all_orders = cursor.fetchall()
+
+        if not all_orders:
+            st.write("No orders found.")
+        else:
+            orders_data = [
+                {
+                    "Order Number": int(order[0]), 
+                    "Customer Name": order[1],
+                    "Phone 1": order[2],
+                    "Phone 2": order[3],
+                    "Email": order[4],
+                    "Ship Company": order[5],
+                    "Region": order[6],
+                    "Order Price": order[7],
+                    "Days to Receive": order[8],
+                    "Hoodies": order[9],
+                    "Shipping Price": order[10],
+                }
+                for order in all_orders
+            ]
+            
+            gb = GridOptionsBuilder.from_dataframe(pd.DataFrame(orders_data))
+            gb.configure_selection("multiple", use_checkbox=True) 
+            gb.configure_column("Order Number", sort="asc")  
+            grid_options = gb.build()
+            
+            grid_response = AgGrid(
+                pd.DataFrame(orders_data),
+                gridOptions=grid_options,
+                update_mode=GridUpdateMode.SELECTION_CHANGED,
+                height=400,
+                theme="streamlit",  
+            )
+            
+            selected_rows = grid_response["selected_rows"]
+
+            if selected_rows is None or selected_rows.empty:
+                st.warning("No orders selected.")
+            else:
+                st.write("Selected Rows:", selected_rows)  
+                if "Order Number" in selected_rows.columns:
+                    selected_order_numbers = selected_rows["Order Number"].astype(str).tolist()
+                else:
+                    st.error("The 'Order Number' column is missing in the selected rows.")
+                    selected_order_numbers = []
+
+                if st.button("Delete Selected Orders"):
+                    if not selected_order_numbers:
+                        st.warning("No valid orders selected for deletion.")
+                    else:
+                        orders_tuple = tuple(selected_order_numbers)
+
+                        if len(orders_tuple) == 1:
+                            orders_tuple = (orders_tuple[0],)
+
+                        delete_query = "DELETE FROM orders WHERE order_number IN %s"
+                        try:
+                            with create_connection() as conn:
+                                cursor = conn.cursor()
+                                cursor.execute(delete_query, (orders_tuple,))
+                                conn.commit()
+                                st.success(f"Successfully deleted {len(selected_order_numbers)} orders.")
+                        except Exception as e:
+                            st.error(f"Error deleting orders: {e}")
 
 
 elif page == "Cancelled Orders":
@@ -1621,7 +1703,7 @@ elif page == "Shipping Problems":
             st.write("All Orders:")
             st.dataframe(df)
             st.write(f"**Total Orders:** {total_orders}")
-            st.write(f"**Total Price:** {int(total_price):,}".replace(",", "."))
+            st.write(f"**Total Shipping Price:** {int(total_price):,}".replace(",", "."))
             st.write(f"**Total Products:** {total_products}")       
             st.write("Download Data:")
             csv_data = df.to_csv(index=False)
