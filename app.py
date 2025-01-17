@@ -22,22 +22,20 @@ def create_connection():
 
 st.set_page_config(page_title="Orders System",layout='wide')
 st.title("Order Management System")
-st.markdown(
-    """
-    <style>
-    input[type=number]::-webkit-inner-spin-button, 
-    input[type=number]::-webkit-outer-spin-button { 
-        -webkit-appearance: none; 
-        margin: 0; 
-    }
-    input[type=number] {
-        -moz-appearance: textfield;
-        appearance: textfield;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+def custom_number_input(label, value=0, min_value=0, step=1):
+    value = st.text_input(label, value=str(value))
+
+    try:
+        numeric_value = int(value)
+        if numeric_value < min_value:
+            st.error(f"Value must be at least {min_value}")
+            numeric_value = min_value
+    except ValueError:
+        st.error("Please enter a valid integer.")
+        numeric_value = value
+
+    return numeric_value
+
 st.sidebar.title("Order Type")
 page = st.sidebar.radio("Select a page", ["Completed Orders", "Cancelled Orders","Returned Orders","Shipping Problems"])
 egypt_governorates = [
@@ -119,10 +117,10 @@ if page == "Completed Orders":
             ship_company = st.text_input("Shipping Company")
             region = st.selectbox("Region",egypt_governorates)
             order_number = st.text_input("Order Code")
-            hoodies = st.number_input("Number Of Hoodies", min_value=0,step=1)
-            order_price = st.number_input("Order Price", min_value=0, step=1)
-            shipping_price = st.number_input("Shipping Price", min_value=0, step=1)
-            days_to_receive = st.number_input("Days to Receive Order",min_value=0,step=1)
+            hoodies = custom_number_input("Number Of Hoodies", min_value=0,step=1)
+            order_price = custom_number_input("Order Price", min_value=0, step=1)
+            shipping_price = custom_number_input("Shipping Price", min_value=0, step=1)
+            days_to_receive = custom_number_input("Days to Receive Order",min_value=0,step=1)
             submit = st.form_submit_button("Add Order")
 
             def contains_arabic(text):
@@ -403,10 +401,10 @@ if page == "Completed Orders":
                     new_email=st.text_input("Email",value=order_details[4])
                     new_ship_company = st.text_input("Shipping Company", value=order_details[5])
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
-                    new_order_price = st.number_input("Order Price",value=order_details[7],min_value=0,step=1)
-                    new_shipping_price = st.number_input("Shipping Price",value=order_details[10],min_value=0,step=1)
+                    new_order_price = custom_number_input("Order Price",value=order_details[7],min_value=0,step=1)
+                    new_shipping_price = custom_number_input("Shipping Price",value=order_details[10],min_value=0,step=1)
                     new_days_to_receive=st.text_input("Days_to_receive",value=order_details[8])
-                    new_hoodies=st.number_input("Number of Hoodies",value=order_details[9],min_value=0,step=1)
+                    new_hoodies=custom_number_input("Number of Hoodies",value=order_details[9],min_value=0,step=1)
                     update_submit = st.form_submit_button("Update Order")
 
                     if update_submit:
@@ -709,8 +707,8 @@ elif page == "Cancelled Orders":
                     )
             region = st.selectbox("Region", egypt_governorates)
             order_number = st.text_input("Order Code")
-            hoodies = st.number_input("Number Of Hoodies", min_value=0,step=1)
-            order_price=st.number_input("Order Price",min_value=0,step=1)
+            hoodies = custom_number_input("Number Of Hoodies", min_value=0,step=1)
+            order_price=custom_number_input("Order Price",min_value=0,step=1)
             cancelled_reason=st.selectbox("Reason",reasons_1)
             submit = st.form_submit_button("Add Cancelled Order")
 
@@ -966,8 +964,8 @@ elif page == "Cancelled Orders":
                     new_email=st.text_input("Email",value=order_details[4])
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[5]))
                     new_cancel_reason=st.selectbox("Reason",reasons_1)
-                    new_cancel_hoodies=st.number_input("Number Of Products",value=order_details[7])
-                    new_cancel_price=st.number_input("Order Price",value=order_details[8])
+                    new_cancel_hoodies=custom_number_input("Number Of Products",value=order_details[7])
+                    new_cancel_price=custom_number_input("Order Price",value=order_details[8])
                     update_submit = st.form_submit_button("Update Order")    
                     if update_submit:
                             cursor.execute(
@@ -1078,8 +1076,8 @@ elif page == "Returned Orders":
             region = st.selectbox("Region", egypt_governorates)
             order_number = st.text_input("Order Code")
             reason=st.selectbox("Reason",reasons)
-            hoodies = st.number_input("Number Of Hoodies", min_value=0,step=1)
-            order_price = st.number_input("Order Price", min_value=0,step=1)
+            hoodies = custom_number_input("Number Of Hoodies", min_value=0,step=1)
+            order_price = custom_number_input("Order Price", min_value=0,step=1)
             submit = st.form_submit_button("Add Returned Order")
 
             if submit:
@@ -1344,8 +1342,8 @@ elif page == "Returned Orders":
                     new_ship_company = st.text_input("Shipping Company", value=order_details[5])
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
                     new_reason = st.selectbox("Reason",reasons)
-                    new_number_of_hoodies=st.number_input("Number Of Products",value=order_details[8])
-                    new_price=st.number_input("Order Price",value=order_details[9])
+                    new_number_of_hoodies=custom_number_input("Number Of Products",value=order_details[8])
+                    new_price=custom_number_input("Order Price",value=order_details[9])
                     update_submit = st.form_submit_button("Update Order")    
                     if update_submit:
                             cursor.execute(
@@ -1457,9 +1455,9 @@ elif page == "Shipping Problems":
             region = st.selectbox("Region", egypt_governorates)
             order_number = st.text_input("Order Code")
             status=st.selectbox("Status",Status)
-            hoodies = st.number_input("Number Of Hoodies", min_value=0,step=1)
+            hoodies = custom_number_input("Number Of Hoodies", min_value=0,step=1)
             problem_reason=st.selectbox("Reason",reasons_2)
-            shipping_price = st.number_input("Shipping Price", min_value=0,step=1)
+            shipping_price = custom_number_input("Shipping Price", min_value=0,step=1)
             submit = st.form_submit_button("Add Order")
 
             if submit:
@@ -1727,8 +1725,8 @@ elif page == "Shipping Problems":
                     new_ship_company = st.text_input("Shipping Company", value=order_details[5])
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
                     new_status = st.selectbox("Status",Status)
-                    new_price=st.number_input("Shipping Price",value=order_details[8])
-                    new_produtcs=st.number_input("Number Of Products",value=order_details[9])
+                    new_price=custom_number_input("Shipping Price",value=order_details[8])
+                    new_produtcs=custom_number_input("Number Of Products",value=order_details[9])
                     new_problem_reason= st.selectbox("Reason",reasons_2)
                     update_submit = st.form_submit_button("Update Order")    
                     if update_submit:
