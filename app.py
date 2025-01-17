@@ -646,7 +646,7 @@ if page == "Completed Orders":
 
 
     with tab7:
-        st.write("### Manage All Orders")
+        st.header("Delete Orders")
         
         query = """
         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
