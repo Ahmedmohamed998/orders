@@ -5,3 +5,4 @@ pandas
 xlsxwriter
 reportlab
 streamlit-aggrid
+streamlit_option_menu
