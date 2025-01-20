@@ -26,7 +26,21 @@ if "logged_in" in st.session_state and st.session_state.logged_in:
 else:
     st.set_page_config(page_title="Login")
 def login_page():
+      st.markdown(
+        """
+        <style>
+            .center {
+                display: flex;
+                justify-content: center;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown('<div class="center">', unsafe_allow_html=True)
     st.image("login.png", width=200)
+    st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("<h1 style='text-align: center; color: white; margin-top: 30px; '>Login Page</h1>", unsafe_allow_html=True)
     st.markdown("")
     st.markdown("")
