@@ -24,23 +24,20 @@ def create_connection():
 
 st.set_page_config(page_title="Orders System",layout='wide')
 def login_page():
-    st.title("Login Page")
-    
-    # Ask for username and password
-    username = st.text_input("Username", "")
-    password = st.text_input("Password", "", type="password")
-    
-    # Hardcoded credentials for demonstration
-    correct_username = "admin"
-    correct_password = "1234"  # replace with the actual password you want
-    
-    if st.button("Login"):
-        if username == correct_username and password == correct_password: # Set a flag for successful login
-            st.session_state.logged_in = True  # Set login flag
-            st.success("Login successful!")
-            st.rerun()  # Force rerun to reflect state change
-        else:
-            st.error("Incorrect username or password")
+    st.markdown("<h1 style='text-align: center; color: white; margin-top: -60px; '>Login Page</h1>", unsafe_allow_html=True)
+    with st.form('loginform'):
+        username = st.text_input("Username", "")
+        password = st.text_input("Password", "", type="password")
+        submit=st.form_submit_button("Login")
+        correct_username = "admin"
+        correct_password = "1234"  
+        if submit:
+            if username == correct_username and password == correct_password: # Set a flag for successful login
+                st.session_state.logged_in = True  # Set login flag
+                st.success("Login successful!")
+                st.rerun()  # Force rerun to reflect state change
+            else:
+                st.error("Incorrect username or password")
 def orders_management_page():
 
     def custom_number_input(label, value=0, min_value=0, step=1):
