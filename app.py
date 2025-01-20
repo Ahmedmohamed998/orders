@@ -26,7 +26,7 @@ if "logged_in" in st.session_state and st.session_state.logged_in:
 else:
     st.set_page_config(page_title="Login")
 def login_page():
-      st.markdown(
+    st.markdown(
         """
         <style>
             .center {
