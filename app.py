@@ -21,8 +21,10 @@ def create_connection():
         dbname=db_name,
         port=23208 
     )
-
-st.set_page_config(page_title="Login")
+if "logged_in" in st.session_state and st.session_state.logged_in:
+    st.set_page_config(page_title="Orders System", layout='wide')
+else:
+    st.set_page_config(page_title="Login")
 def login_page():
     st.markdown("<h1 style='text-align: center; color: white; margin-top: -60px; '>Login Page</h1>", unsafe_allow_html=True)
     st.markdown("")
@@ -41,7 +43,6 @@ def login_page():
             else:
                 st.error("Incorrect username or password")
 def orders_management_page():
-    st.set_page_config(page_title="Orders System",layout='wide')
     def custom_number_input(label, value=0, min_value=0, step=1):
         value = st.text_input(label, value=str(value))
 
