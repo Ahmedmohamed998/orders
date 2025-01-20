@@ -26,7 +26,7 @@ if "logged_in" in st.session_state and st.session_state.logged_in:
 else:
     st.set_page_config(page_title="Login")
 def login_page():
-    st.markdown("<h1 style='text-align: center; color: white; margin-top: -60px; '>Login Page</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: white; margin-top: 60px; '>Login Page</h1>", unsafe_allow_html=True)
     st.markdown("")
     st.markdown("")
     with st.form('loginform'):
