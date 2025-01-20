@@ -1160,6 +1160,7 @@ elif page == "Returned Orders":
             reason=st.selectbox("Reason",reasons)
             hoodies = custom_number_input("Number Of Products", min_value=0,step=1)
             order_price = custom_number_input("Order Price", min_value=0,step=1)
+            shipping_price = custom_number_input("Shipping Price", min_value=0,step=1)
             submit = st.form_submit_button("Add Returned Order")
 
             if submit:
@@ -1191,6 +1192,8 @@ elif page == "Returned Orders":
                     st.error("Number Of Products is required.")
                 elif order_price is None or order_price<0:
                     st.error("Order Price is required.")
+                elif shipping_price is None or shipping_price<0:
+                    st.error("Shipping Price is required.")
                 else:
                     conn = create_connection()
                     cursor = conn.cursor()
@@ -1219,8 +1222,8 @@ elif page == "Returned Orders":
                             )
                             customer_id = cursor.fetchone()[0]
                         cursor.execute(
-                            "INSERT INTO returned_orders (customer_id, ship_company, region, order_number,reason,hoodies,order_price) VALUES (%s, %s, %s, %s,%s,%s,%s)",
-                            (customer_id, ship_company, region, order_number,reason,hoodies,order_price)
+                            "INSERT INTO returned_orders (customer_id, ship_company, region, order_number,reason,hoodies,order_price,shipping_price) VALUES (%s, %s, %s, %s,%s,%s,%s,%s)",
+                            (customer_id, ship_company, region, order_number,reason,hoodies,order_price,shipping_price)
                         )
 
                         conn.commit()
@@ -1250,7 +1253,7 @@ elif page == "Returned Orders":
             cursor.execute(
                 f"""
                 SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                    c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price
+                    c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price,o.shipping_price
                 FROM returned_orders o
                 INNER JOIN customers c ON o.customer_id = c.customer_id
                 WHERE {search_condition}
@@ -1282,7 +1285,7 @@ elif page == "Returned Orders":
         
         query = f"""
         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-            c.email, o.ship_company, o.region, o.reason,o.hoodies,o.order_price
+            c.email, o.ship_company, o.region, o.reason,o.hoodies,o.order_price,o.shipping_price
         FROM returned_orders o
         INNER JOIN customers c ON o.customer_id = c.customer_id
         """
@@ -1314,7 +1317,9 @@ elif page == "Returned Orders":
                     "Region": order[6],
                     "Reason": order[7],
                     "Number Of Products":order[8],
-                    "Order Price":order[9]
+                    "Order Price":order[9],
+                    "Shipping Price":order[10],
+                    "Order Profit": (order[9] or 0) - (order[10] or 0),
                 })
             df = pd.DataFrame(data)
             st.write("All Orders:")
@@ -1356,6 +1361,7 @@ elif page == "Returned Orders":
                     180,  
                     100,  
                     100,  
+                    30,
                     30,
                     30,
                     30,
@@ -1402,7 +1408,7 @@ elif page == "Returned Orders":
             cursor.execute(
                 """
                 SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
-                    c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price
+                    c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price,o.shipping_price
                 FROM returned_orders o
                 INNER JOIN customers c ON o.customer_id = c.customer_id
                 WHERE o.order_number = %s
@@ -1426,6 +1432,7 @@ elif page == "Returned Orders":
                     new_reason = st.selectbox("Reason",reasons)
                     new_number_of_hoodies=custom_number_input("Number Of Products",value=order_details[8])
                     new_price=custom_number_input("Order Price",value=order_details[9])
+                    new_shipping_price=custom_number_input("Shipping Price",value=order_details[10])
                     update_submit = st.form_submit_button("Update Order")    
                     if update_submit:
                             cursor.execute(
@@ -1444,7 +1451,7 @@ elif page == "Returned Orders":
                             cursor.execute(
                                 """
                                 UPDATE returned_orders
-                                SET ship_company = %s, region = %s,reason=%s,hoodies=%s,order_price=%s
+                                SET ship_company = %s, region = %s,reason=%s,hoodies=%s,order_price=%s,shipping_price=%S
                                 WHERE order_number = %s
                                 """,
                                 (new_ship_company, new_region, new_reason, new_number_of_hoodies, new_price, search_order_number)
