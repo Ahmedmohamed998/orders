@@ -1326,6 +1326,8 @@ elif page == "Returned Orders":
             st.dataframe(df)
             st.write(f"**Total Orders:** {total_orders}")
             st.write(f"**Total Price:** {int(total_price):,}".replace(",", "."))
+            total_order_profit = df["Order Profit"].sum()
+            st.write(f"**Total Order Profit:** {int(total_order_profit):,}".replace(",", "."))
             st.write(f"**Total Products:** {total_products}")            
             st.write("Download Data:")
             csv_data = df.to_csv(index=False)
