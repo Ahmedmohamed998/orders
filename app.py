@@ -25,6 +25,8 @@ def create_connection():
 st.set_page_config(page_title="Orders System",layout='wide')
 def login_page():
     st.markdown("<h1 style='text-align: center; color: white; margin-top: -60px; '>Login Page</h1>", unsafe_allow_html=True)
+    st.markdown("")
+    st.markdown("")
     with st.form('loginform'):
         username = st.text_input("Username", "")
         password = st.text_input("Password", "", type="password")
