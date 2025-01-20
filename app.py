@@ -1451,10 +1451,10 @@ elif page == "Returned Orders":
                             cursor.execute(
                                 """
                                 UPDATE returned_orders
-                                SET ship_company = %s, region = %s,reason=%s,hoodies=%s,order_price=%s,shipping_price=%S
+                                SET ship_company = %s, region = %s,reason=%s,hoodies=%s,order_price=%s,shipping_price=%s
                                 WHERE order_number = %s
                                 """,
-                                (new_ship_company, new_region, new_reason, new_number_of_hoodies, new_price, search_order_number)
+                                (new_ship_company, new_region, new_reason, new_number_of_hoodies, new_price, new_shipping_price, search_order_number)
                             )
 
                             conn.commit()
