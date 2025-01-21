@@ -1297,11 +1297,11 @@ elif page == "Returned Orders":
         cursor.execute(query)
         all_orders = cursor.fetchall()
         total_query = """
-        SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0)
+        SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0),COALESCE(SUM(o.shipping_price), 0)
         FROM returned_orders o
         """
         cursor.execute(total_query)
-        total_orders,total_products, total_price = cursor.fetchone()
+        total_orders,total_products, total_price, total_shipping_price = cursor.fetchone()
         conn.close()
         
         if all_orders:
@@ -1326,6 +1326,7 @@ elif page == "Returned Orders":
             st.dataframe(df)
             st.write(f"**Total Orders:** {total_orders}")
             st.write(f"**Total Price:** {int(total_price):,}".replace(",", "."))
+            st.write(f"**Total Shipping Price:** {int(total_shipping_price):,}".replace(",", "."))
             total_order_profit = df["Order Profit"].sum()
             st.write(f"**Total Order Profit:** {int(total_order_profit):,}".replace(",", "."))
             st.write(f"**Total Products:** {total_products}")            
