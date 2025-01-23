@@ -47,7 +47,7 @@ users = {
 def login_page():
     col1, col2, col3 = st.columns([1, 1, 1])  
     with col2:
-        st.image(r"E:\trying\login.png", width=200)
+        st.image("login.png", width=200)
     st.markdown("<h1 style='text-align: center; color: white; margin-top: 0px; '>User Login</h1>", unsafe_allow_html=True)
     st.markdown("")
     st.markdown("")
