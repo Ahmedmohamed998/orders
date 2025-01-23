@@ -84,8 +84,8 @@ def orders_management_page():
         with st.sidebar:
             page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Shipping Problems','Customers','Activity Logs'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people','clock'], menu_icon="list", default_index=0)
             if st.button("Logout"):
-                log_action(st.session_state.username, "Logout", "Successful logout")
                 st.session_state.logged_in = False
+                log_action(st.session_state.username, "Logout", "Successful logout")
                 st.rerun()
     else:
         with st.sidebar:
