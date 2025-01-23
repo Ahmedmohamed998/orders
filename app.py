@@ -90,6 +90,7 @@ def orders_management_page():
         with st.sidebar:
             page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Shipping Problems','Customers'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people'], menu_icon="list", default_index=0)
             if st.button("Logout"):
+                log_action(st.session_state.username, "Logout", "Successful logout")
                 st.session_state.logged_in = False
                 st.rerun()
     egypt_governorates = [
