@@ -82,7 +82,7 @@ def orders_management_page():
         return numeric_value
     if st.session_state.username=="manager":
         with st.sidebar:
-            page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Shipping Problems','Activity Logs','Customers'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','clock','people'], menu_icon="list", default_index=0)
+            page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Shipping Problems','Customers','Activity Logs'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people,'clock'], menu_icon="list", default_index=0)
             if st.button("Logout"):
                 st.session_state.logged_in = False
                 st.rerun()
