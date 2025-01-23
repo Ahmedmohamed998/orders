@@ -6,3 +6,5 @@ xlsxwriter
 reportlab
 streamlit-aggrid
 streamlit_option_menu
+streamlit_shadcn_ui
+plotly
