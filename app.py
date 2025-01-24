@@ -224,28 +224,29 @@ if page == "Completed Orders":
                 (search_query,)
             )
 
-            order = cursor.fetchall()
+            results= cursor.fetchall()
             if order:
                 st.write("Search Results:")
                 data=[]
-                data.append({
-                    "Order Number": order[0],
-                    "Customer Name": order[1],
-                    "Phone 1": order[2],
-                    "Phone 2": order[3],
-                    "Email": order[4],
-                    "Shipping Company": order[5],
-                    "Region": order[6],
-                    "Order Price": f"{order[7]}",
-                    "Shipping Price":order[10],
-                    "Order Profit": (order[7] or 0) - (order[10] or 0),
-                    "Days to Receive":order[8],
-                    "Number of Products":order[9]
-                })
+                for order in results:
+                    data.append({
+                       "Order Number": order[0],
+                       "Customer Name": order[1],
+                       "Phone 1": order[2],
+                       "Phone 2": order[3],
+                       "Email": order[4],
+                       "Shipping Company": order[5],
+                       "Region": order[6],
+                       "Order Price": f"{order[7]}",
+                       "Shipping Price":order[10],
+                       "Order Profit": (order[7] or 0) - (order[10] or 0),
+                       "Days to Receive":order[8],
+                       "Number of Products":order[9]
+                     })
                 df = pd.DataFrame(data)
                 st.dataframe(df)
-                total_price = sum(order_[7] for order_ in order)
-                total_hoodies = sum(int(order_[9]) for order_ in order)
+                total_price = sum(order[7] for order in results)
+                total_hoodies = sum(int(order[9]) for order in results)
                 st.write(f"Total Amount Spent: {total_price}")
                 st.write(f"Total Number of Products: {total_hoodies}")
             else:
