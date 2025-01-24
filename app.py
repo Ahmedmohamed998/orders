@@ -224,8 +224,8 @@ if page == "Completed Orders":
                 (search_query,)
             )
 
-            results = cursor.fetchall()
-            if results:
+            order = cursor.fetchall()
+            if order:
                 st.write("Search Results:")
                 data=[]
                 data.append({
@@ -244,8 +244,8 @@ if page == "Completed Orders":
                 })
                 df = pd.DataFrame(data)
                 st.dataframe(df)
-                total_price = sum(order[7] for order in results)
-                total_hoodies = sum(int(order[9]) for order in results)
+                total_price = sum(order[7] for order_ in order)
+                total_hoodies = sum(int(order[9]) for order_ in order)
                 st.write(f"Total Amount Spent: {total_price}")
                 st.write(f"Total Number of Products: {total_hoodies}")
             else:
