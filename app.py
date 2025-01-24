@@ -230,7 +230,7 @@ if page == "Completed Orders":
                 st.table(results)
                 total_price = sum(order[7] for order in results)
                 total_hoodies = sum(int(order[9]) for order in results)
-                st.write(f"Total Amount Spent: {total_price}")
+                st.write(f"Total Price: {total_price}")
                 st.write(f"Total Number of Products: {total_hoodies}")
             else:
                 st.write("No orders found for the given query.")
