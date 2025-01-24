@@ -227,6 +227,7 @@ if page == "Completed Orders":
             results = cursor.fetchall()
             if results:
                 st.write("Search Results:")
+                data=[]
                 data.append({
                     "Order Number": order[0],
                     "Customer Name": order[1],
