@@ -225,7 +225,7 @@ if page == "Completed Orders":
             )
 
             results= cursor.fetchall()
-            if order:
+            if results:
                 st.write("Search Results:")
                 data=[]
                 for order in results:
