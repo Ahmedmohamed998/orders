@@ -158,7 +158,7 @@ def orders_management_page():
     reasons_1=['Customer','Out Of Stock','Team']
     reasons_2=['Customer','Delivery Man','Team']
     Status=['Returned','Exchanged','Reshipping','Team']
-    products=['Hoodie','Quarter Zipper']
+    products=['Hoodie','Quarter Zipper','Acid Washed Hoodie']
     Options= ["No", "Yes"]
     if page=='Analysis':
         def metric_card_with_icon(title, content, description,info):
