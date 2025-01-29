@@ -3028,7 +3028,7 @@ def orders_management_page():
             df_status, 
             x="Status", 
             y="Total Orders", 
-            title="Total Orders by Reason",
+            title="Total Orders by Status",
             labels={"Status": "Status", "Total Orders": "Number of Orders"},
             text=df_status['Percentage'].apply(lambda x: f"{x:.2f}%"),
             color="Status",
@@ -3037,7 +3037,7 @@ def orders_management_page():
 
             fig_status.update_traces(texttemplate='%{text}', textposition='outside')
             fig_status.update_layout(
-            xaxis_title="Ststus",
+            xaxis_title="Status",
             yaxis_title="Total Orders",
             uniformtext_minsize=8,
             uniformtext_mode='hide'
