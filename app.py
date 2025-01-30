@@ -30,7 +30,7 @@ if "logged_in" in st.session_state and st.session_state.logged_in:
     st.markdown(
     """
     <style>
-        header {visibility: hidden;}
+        #MainMenu {visibility: hidden;}
     </style>
     """,
     unsafe_allow_html=True
@@ -40,7 +40,7 @@ else:
     st.markdown(
     """
     <style>
-        header {visibility: hidden;}
+        #MainMenu {visibility: hidden;}
     </style>
     """,
     unsafe_allow_html=True
