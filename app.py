@@ -31,7 +31,6 @@ if "logged_in" in st.session_state and st.session_state.logged_in:
     """
     <style>
         #MainMenu {visibility: hidden;}
-        header {visibility: hidden;}
     </style>
     """,
     unsafe_allow_html=True
@@ -42,7 +41,6 @@ else:
     """
     <style>
         #MainMenu {visibility: hidden;}
-        header {visibility: hidden;}
     </style>
     """,
     unsafe_allow_html=True
