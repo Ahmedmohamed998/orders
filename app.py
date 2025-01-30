@@ -27,9 +27,26 @@ def create_connection():
 
 if "logged_in" in st.session_state and st.session_state.logged_in:
     st.set_page_config(page_title="Orders System", layout='wide')
-    
+    st.markdown(
+    """
+    <style>
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+    </style>
+    """,
+    unsafe_allow_html=True
+    )   
 else:
     st.set_page_config(page_title="Login")
+    st.markdown(
+    """
+    <style>
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+    </style>
+    """,
+    unsafe_allow_html=True
+    )
 def log_action(username, action, details=None):
     conn = create_connection()
     cursor = conn.cursor()
