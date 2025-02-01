@@ -986,7 +986,7 @@ def orders_management_page():
                         new_days_to_receive=st.text_input("Days_to_receive",value=order_details[8])
                         new_date=st.date_input("Order Date",value=order_details[11])
                         if not products_list:
-                           num_products = st.custom_number_input("Enter the number of products:", min_value=1, step=1)
+                           num_products = st.custom_number_input("Enter the number of products:", min_value=1)
                            fake_products = []
                            for i in range(num_products):
                              product_type = st.selectbox(f"Enter product type for item {i+1}:",products,key=f"type_{i}")
