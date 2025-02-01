@@ -3952,9 +3952,9 @@ def orders_management_page():
             cursor.execute(shipping_company_query)
             shipping_data = cursor.fetchall()
 
-            df___shipping = pd.DataFrame(shipping_data, columns=["Status", "Total Shipping Cost"])
-            total_shipping_cost = df___shipping["Total Shipping Cost"].sum()
-            df___shipping["Percentage"] = (df___shipping["Total Shipping Cost"] / total_shipping_cost) * 100
+            df_shipping_status = pd.DataFrame(shipping_data, columns=["Status", "Total Shipping Cost"])
+            total_shipping_cost = df_shipping_status["Total Shipping Cost"].sum()
+            df_shipping_status["Percentage"] = (df_shipping_status["Total Shipping Cost"] / total_shipping_cost) * 100
             shipping_company_query = """
                 SELECT 
                     o.reason AS Reason,
@@ -3966,9 +3966,9 @@ def orders_management_page():
             cursor.execute(shipping_company_query)
             shipping_data = cursor.fetchall()
 
-            df____shipping = pd.DataFrame(shipping_data, columns=["Reason", "Total Shipping Cost"])
-            total_shipping_cost = df____shipping["Total Shipping Cost"].sum()
-            df___shipping["Percentage"] = (df____shipping["Total Shipping Cost"] / total_shipping_cost) * 100
+            df_shipping_reason = pd.DataFrame(shipping_data, columns=["Reason", "Total Shipping Cost"])
+            total_shipping_cost = df_shipping_reason["Total Shipping Cost"].sum()
+            df_shipping_reason["Percentage"] = (df_shipping_reason["Total Shipping Cost"] / total_shipping_cost) * 100
             conn.close()
             avg_shipping_price= total_shipping_prices/total_orders
             avg_shipping_price_1=total_shipping_prices/total_products
@@ -4067,7 +4067,7 @@ def orders_management_page():
             df_status, 
             x="Status", 
             y="Total Orders", 
-            title="Total Orders by Reason",
+            title="Total Orders by Status",
             labels={"Status": "Status", "Total Orders": "Number of Orders"},
             text=df_status['Percentage'].apply(lambda x: f"{x:.2f}%"),
             color="Status",
@@ -4076,7 +4076,7 @@ def orders_management_page():
 
             fig_status.update_traces(texttemplate='%{text}', textposition='outside')
             fig_status.update_layout(
-            xaxis_title="Ststus",
+            xaxis_title="Status",
             yaxis_title="Total Orders",
             uniformtext_minsize=8,
             uniformtext_mode='hide'
@@ -4095,7 +4095,7 @@ def orders_management_page():
             fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
             st.plotly_chart(fig,use_container_width=True)
             fig = px.bar(
-                df___shipping,
+                df_shipping_status,
                 x="Status",
                 y="Total Shipping Cost",
                 title="Shipping Price Distribution by Status",
@@ -4107,7 +4107,7 @@ def orders_management_page():
             fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
             st.plotly_chart(fig,use_container_width=True)
             fig = px.bar(
-                df____shipping,
+                df_shipping_reason,
                 x="Reason",
                 y="Total Shipping Cost",
                 title="Shipping Price Distribution by Reason",
