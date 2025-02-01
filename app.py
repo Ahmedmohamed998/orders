@@ -966,10 +966,14 @@ def orders_management_page():
                     if order_details:
                         st.write("Order Details:")
                         st.table([order_details])
-                        products_list = [
+                        if order_details[12]:  # Checks if it's not empty or None
+                          products_list = [
                             {"Type": p.split(":")[0], "Count": int(p.split(":")[1])}
-                            for p in order_details[12].split(", ")
-                        ]
+                            for p in order_details[12].split(", ") if ":" in p
+                          ]
+                        else:
+                          products_list = []  # Set an empty list when there are no products
+
                         st.subheader("Update Order")
                         new_name=st.text_input("Customer Name",value=order_details[1])
                         new_phone1=st.text_input("Customer Phone 1",value=order_details[2])
