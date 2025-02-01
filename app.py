@@ -3995,7 +3995,7 @@ def orders_management_page():
                     metric_card_with_icon(
                         "Total Shipping Prices", 
                         f"{int(total_shipping_prices):,}".replace(",", "."),"", 
-                        "الاوردات كلهام."
+                        "اThe total shipping cost incurred for all orders."
                     )
             with col4:
                     metric_card_with_icon(
