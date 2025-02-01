@@ -2755,9 +2755,13 @@ def orders_management_page():
                     if order_details:
                         st.write("Order Details:")
                         st.table([order_details])
-                        products_list = [
-                                {"Type": p.split(":")[0], "Count": int(p.split(":")[1])}
-                                for p in order_details[13].split(", ")]
+                        if order_details[12]:  # Checks if it's not empty or None
+                          products_list = [
+                            {"Type": p.split(":")[0], "Count": int(p.split(":")[1])}
+                            for p in order_details[12].split(", ") if ":" in p
+                          ]
+                        else:
+                          products_list = []
                         st.subheader("Update Order")
                         new_name=st.text_input("Customer Name",value=order_details[1])
                         new_phone1=st.text_input("Customer Phone 1",value=order_details[2])
@@ -2769,6 +2773,15 @@ def orders_management_page():
                         new_reason = st.selectbox("Reason",["Customer","Delvirey Man","Quality","Size","Team"])
                         new_price=custom_number_input("Order Price",value=order_details[9])
                         new_shipping_price=custom_number_input("Shipping Price",value=order_details[10])
+                        if not products_list:
+                           num_products = custom_number_input("Enter the number of products:", min_value=0,step=1)
+                           fake_products = []
+                           for i in range(num_products):
+                             product_type = st.selectbox(f"Enter product type for item {i+1}:",products,key=f"type_{i}")
+                             count = custom_number_input(f"Enter count for {product_type}:", min_value=0, step=1, key=f"count_{i}")
+                             if product_type:  # Ensure input is not empty
+                               fake_products.append({"Type": product_type, "Count": count})
+                           products_list = fake_products
                         if "re_modified_products" not in st.session_state:
                             st.session_state.re_modified_products = products_list
                         for i, product in enumerate(st.session_state.re_modified_products):
