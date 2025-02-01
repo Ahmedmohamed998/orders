@@ -985,6 +985,15 @@ def orders_management_page():
                         new_shipping_price = custom_number_input("Shipping Price",value=order_details[10],min_value=0,step=1)
                         new_days_to_receive=st.text_input("Days_to_receive",value=order_details[8])
                         new_date=st.date_input("Order Date",value=order_details[11])
+                        if not products_list:
+                           num_products = st.number_input("Enter the number of products:", min_value=1, step=1)
+                           fake_products = []
+                           for i in range(num_products):
+                           product_type = st.text_input(f"Enter product type for item {i+1}:", key=f"type_{i}")
+                           count = st.number_input(f"Enter count for {product_type}:", min_value=1, step=1, key=f"count_{i}")
+                           if product_type:  # Ensure input is not empty
+                              fake_products.append({"Type": product_type, "Count": count})
+                           products_list = fake_products
                         if "modified_products" not in st.session_state:
                             st.session_state.modified_products = products_list
                         for i, product in enumerate(st.session_state.modified_products):
