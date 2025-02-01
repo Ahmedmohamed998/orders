@@ -993,7 +993,7 @@ def orders_management_page():
                              count = st.number_input(f"Enter count for {product_type}:", min_value=1, step=1, key=f"count_{i}")
                              if product_type:  # Ensure input is not empty
                                fake_products.append({"Type": product_type, "Count": count})
-                            products_list = fake_products
+                           products_list = fake_products
                         if "modified_products" not in st.session_state:
                             st.session_state.modified_products = products_list
                         for i, product in enumerate(st.session_state.modified_products):
