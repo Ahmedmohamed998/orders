@@ -187,7 +187,7 @@ def orders_management_page():
                 st.rerun()
     elif st.session_state.selected_season== "Winter":
         with st.sidebar:
-            page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Problems','Customers','Analysis'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people','graph-up'], menu_icon="list", default_index=0)
+            page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Problems','Customers'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people'], menu_icon="list", default_index=0)
             if st.button("Logout"):
                 st.session_state.logged_in = False
                 log_action(st.session_state.username, "Logout", "Successful logout")
