@@ -2995,8 +2995,9 @@ def orders_management_page():
                 """
             cursor.execute(total_query)
             total_orders, total_products, total_prices, total_shipping_prices,total_shipping_prices_go,total_shipping_prices_back = cursor.fetchone()
+            total_shipping_cost=total_shipping_prices
             total_shipping_prices=(total_shipping_prices-(60*total_orders))
-            total_profit = total_prices - total_shipping_prices
+            total_profit = total_prices - total_shipping_cost
             query = """
                 SELECT 
                     o.region, 
