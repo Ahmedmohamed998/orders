@@ -118,7 +118,8 @@ def season_selection_page():
         if st.button("Select Summer", key="summer", use_container_width=True):
             st.session_state.selected_season = "Summer"
             st.rerun()
-
+    new_season=st.text_input("New Season Name")
+    st.button("Add Season")
 def orders_management_page():
     if st.session_state.selected_season is None:
         season_selection_page()
