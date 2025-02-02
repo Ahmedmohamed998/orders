@@ -111,18 +111,46 @@ def season_selection_page():
         if st.button("Select Winter", key="winter", use_container_width=True):
             st.session_state.selected_season = "Winter"
             st.rerun()
-
+        new_season=st.text_input("New Season Name")
+        st.button("Add Season")
     with col2:
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: 50px; '>☀️ Summer Season</h1>", unsafe_allow_html=True)
         st.markdown("")
         if st.button("Select Summer", key="summer", use_container_width=True):
             st.session_state.selected_season = "Summer"
             st.rerun()
-    new_season=st.text_input("New Season Name")
-    st.button("Add Season")
+def season_selection_page_1():
+    st.markdown("<h1 style='text-align: center; color:white; margin-top: -60px; '>🌍 Seasons</h1>", unsafe_allow_html=True)
+    st.markdown("")
+    st.markdown("")
+    st.markdown("")
+    st.markdown("")
+    st.markdown("")
+    st.markdown("")
+    st.markdown("")
+    st.markdown("")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("<h1 style='text-align: center; color:rgb(5, 150, 254); margin-top: 50px; '>❄️ Winter Season</h1>", unsafe_allow_html=True)
+        st.markdown("")
+
+        if st.button("Select Winter", key="winter", use_container_width=True):
+            st.session_state.selected_season = "Winter"
+            st.rerun()
+        
+    with col2:
+        st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: 50px; '>☀️ Summer Season</h1>", unsafe_allow_html=True)
+        st.markdown("")
+        if st.button("Select Summer", key="summer", use_container_width=True):
+            st.session_state.selected_season = "Summer"
+            st.rerun()    
 def orders_management_page():
-    if st.session_state.selected_season is None:
+    if st.session_state.selected_season is None and  st.session_state.username=="walid":
         season_selection_page()
+        return
+    elif st.session_state.selected_season is None:
+        season_selection_page_1()
         return
     if st.session_state.selected_season == "Summer":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: 200px;'>Coming Soon...</h1>", unsafe_allow_html=True)
