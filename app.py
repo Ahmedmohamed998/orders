@@ -2906,10 +2906,10 @@ def orders_management_page():
                     if order_details:
                         st.write("Order Details:")
                         st.table([order_details])
-                        if order_details[12]:  # Checks if it's not empty or None
+                        if order_details[13]:  # Checks if it's not empty or None
                           products_list = [
                             {"Type": p.split(":")[0], "Count": int(p.split(":")[1])}
-                            for p in order_details[12].split(", ") if ":" in p
+                            for p in order_details[13].split(", ") if ":" in p
                           ]
                         else:
                           products_list = []
