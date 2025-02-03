@@ -257,21 +257,21 @@ def orders_management_page():
         total_shipping_returned_query = """
             SELECT 
                 COUNT(o.order_number) AS total_orders, 
-                COALESCE(SUM(o.shipping_price), 0) AS total_shipping_price
+                COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_price
             FROM returned_orders o;
           """
         cursor.execute(total_shipping_returned_query)
         total_returned_orders,total_shipping_returned_price = cursor.fetchone()
-        total_shipping_returned_price=total_shipping_returned_price-(60*total_returned_orders)
+        total_shipping_returned_price=total_shipping_returned_price
         total_shipping_problems_query = """
             SELECT 
                 COUNT(o.order_number) AS total_orders, 
-                COALESCE(SUM(o.shipping_price), 0) AS total_shipping_price
+                COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_price
             FROM shipping o;
           """
         cursor.execute(total_shipping_problems_query)
         total_problem_orders,total_shipping_problem_price = cursor.fetchone()
-        total_shipping_problem_price=total_shipping_problem_price-(60*total_problem_orders)
+        total_shipping_problem_price=total_shipping_problem_price
         total_shipping_completed_query = """
             SELECT 
                 COALESCE(SUM(o.shipping_price), 0) AS total_shipping_price
@@ -1515,7 +1515,6 @@ def orders_management_page():
                     continue
                 products_dict = parse_products(products_str) 
                 total_quantity = sum(products_dict.values()) 
-
                 for product_type, quantity in products_dict.items():
                     shipping_price_for_product = (quantity / total_quantity) * total_shipping_price
 
@@ -1526,6 +1525,8 @@ def orders_management_page():
 
             df__shipping = pd.DataFrame(product_shipping.items(), columns=["Product Type", "Total Shipping Price"])
             df__shipping = df__shipping.sort_values(by="Total Shipping Price", ascending=False)
+            total_orders_shipping = df__shipping['Total Shipping Price'].sum()
+            df__shipping['Percentage'] = (df__shipping['Total Shipping Price'] / total_orders_shipping) * 100
             query = """
             SELECT 
                 o.order_number,
@@ -1569,9 +1570,9 @@ def orders_management_page():
                             total_product_prices[product_type] = total_price_for_product
 
             df_total_prices = pd.DataFrame(total_product_prices.items(),columns=["Product Type", "Total Price"])
-
             df_total_prices = df_total_prices.sort_values(by="Total Price", ascending=False)
-
+            total_pricesss = df_total_prices['Total Price'].sum()
+            df_total_prices['Percentage'] = (df_total_prices['Total Price'] / total_pricesss) * 100
 
             query = """
             SELECT 
@@ -1602,6 +1603,30 @@ def orders_management_page():
 
             df_total_counts = pd.DataFrame(total_counts.items(),columns=["Product Type", "Total Quantity"])
             df_total_counts = df_total_counts.sort_values(by="Total Quantity", ascending=False)
+            total_countsss = df_total_counts['Total Quantity'].sum()
+            df_total_counts['Percentage'] = (df_total_counts['Total Quantity'] / total_countsss) * 100
+            query = """
+                    WITH product_orders AS (
+                        SELECT
+                            o.order_number,
+                            TRIM(SPLIT_PART(regexp_split_to_table(o.products, ','), ':', 1)) AS product_name
+                        FROM orders o
+                    ),
+                    distinct_orders AS (
+                        SELECT COUNT(DISTINCT order_number) AS total_orders FROM orders
+                    )
+                    SELECT 
+                        product_name,
+                        COUNT(DISTINCT order_number) AS order_count,
+                        (COUNT(DISTINCT order_number) * 100.0) / (SELECT total_orders FROM distinct_orders) AS percentage
+                    FROM product_orders
+                    WHERE product_name IS NOT NULL
+                    GROUP BY product_name
+                    ORDER BY percentage DESC;
+
+                    """
+            df_products_percentage = pd.read_sql(query, conn)
+
             conn.close()
             percentage_completed = total_orders / (total_orders + total_cancelled + total_returned)
             avg_shipping_price_1=total_shipping_prices/total_products
@@ -1621,7 +1646,8 @@ def orders_management_page():
                     metric_card_with_icon(
                         "Avg Shipping Price(Products)", 
                         f"{avg_shipping_price_1:.2f}","",
-                        "The average cost of shipping for all products."
+                        """The average cost of shipping for all products. 
+                        متوسط سعر الشحن للمنتج اللي هو عباره عن المجموع الكلي للشحن مقسوم على عدد المنتجات"""
                     )
 
             with col2:
@@ -1632,9 +1658,10 @@ def orders_management_page():
                     )
                     st.markdown("")
                     metric_card_with_icon(
-                        "Avg Shipping Price", 
+                        "Avg Shipping Price(order)", 
                         f"{avg_shipping_price:.2f}".replace(",", "."),"",
-                        "The average cost of shipping for all orders."
+                        """The average cost of shipping for all orders.
+                        متوسط سعر الشحن للاوردر اللي هو عباره عن المجموع الكلي للشحن مقسوم على عدد الاوردرات"""
                     )
                     st.markdown("")
                     metric_card_with_icon(
@@ -1659,13 +1686,15 @@ def orders_management_page():
                     metric_card_with_icon(
                         "Total Profit", 
                         f"{int(total_profit):,}".replace(",", "."),"", 
-                        "The total profit (total revenue minus total shipping cost)."
+                        """The total profit (total revenue minus total shipping cost).
+                        السعر الكلي مطروح منه الشحن الكلي """
                     )
                     st.markdown("")
                     metric_card_with_icon(
                     "Percentage of Completed Orders", 
                     f"{percentage_completed * 100:.2f}%", "", 
-                    "The percentage of completed orders out of total orders."
+                    """The percentage of completed orders out of total orders.
+                    نسبة الاوردرات الكامله بالنسبه لكل الاوردرات"""
                     )
             fig = px.bar(
                 df, 
@@ -1722,10 +1751,10 @@ def orders_management_page():
                 title="Shipping Price Distribution by Product Type",
                 labels={"Total Shipping Price": "Shipping Price (Currency)"},
                 template="plotly_white",
-                text="Total Shipping Price",
+                text=df__shipping['Percentage'].apply(lambda x: f"{x:.2f}%"),
                 color="Product Type"
             )
-            fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+            fig.update_traces(texttemplate="%{text}", textposition="outside")
             st.plotly_chart(fig,use_container_width=True)
             fig = px.bar(
                 df_total_prices,
@@ -1734,10 +1763,10 @@ def orders_management_page():
                 title="Price Distribution by Product Type",
                 labels={"Total Price": "Price (Currency)"},
                 template="plotly_white",
-                text="Total Price",
+                text=df_total_prices['Percentage'].apply(lambda x: f"{x:.2f}%"),
                 color="Product Type"
             )
-            fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+            fig.update_traces(texttemplate="%{text}", textposition="outside")
             st.plotly_chart(fig,use_container_width=True)
             fig = px.bar(
                 df_total_counts,
@@ -1746,10 +1775,17 @@ def orders_management_page():
                 title="Quantity Distribution by Product Type",
                 labels={"Total Quantity": "Quantity (Currency)"},
                 template="plotly_white",
-                text="Total Quantity",
+                text=df_total_counts['Percentage'].apply(lambda x: f"{x:.2f}%"),
                 color="Product Type"
             )
-            fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+            fig.update_traces(texttemplate="%{text}", textposition="outside")
+            st.plotly_chart(fig,use_container_width=True)
+            fig = px.bar(df_products_percentage, x="product_name", y="percentage", 
+             text="percentage", labels={"product_name": "Product Type", "percentage": "Percentage (%)"},
+             title="Product Order Percentage", color="percentage",
+             color_continuous_scale="blues")
+            fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+            fig.update_layout(yaxis_title="Percentage (%)", xaxis_title="Product Type")
             st.plotly_chart(fig,use_container_width=True)
     elif page == "Cancelled Orders":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>📦Cancelled Orders</h1>", unsafe_allow_html=True)
@@ -1772,28 +1808,27 @@ def orders_management_page():
         st.markdown("")
         st.markdown("")
         if selected_2=="Add Order":
-            def correct_phone_number(phone):
-                if re.search(r"[^\d]", phone):
-                    phone = re.sub(r"[^\d]", "", phone)
-                    return phone, False, True
-                elif not phone.startswith("01"):
-                    phone = "01" + phone
-                    return phone, False, True
-                if len(phone) == 11:
-                    return phone, True, True
-                else:
-                    return phone, False, False
-            def correct_email(email):
-                if ' ' in email:
-                    email = re.sub(r"\s+", "", email)
-                    return email, False
-                else:
-                    return email, True
+                def correct_phone_number(phone):
+                    if re.search(r"[^\d]", phone):
+                        phone = re.sub(r"[^\d]", "", phone)
+                        return phone, False, True
+                    elif not phone.startswith("01"):
+                        phone = "01" + phone
+                        return phone, False, True
+                    if len(phone) == 11:
+                        return phone, True, True
+                    else:
+                        return phone, False, False
+                def correct_email(email):
+                    if ' ' in email:
+                        email = re.sub(r"\s+", "", email)
+                        return email, False
+                    else:
+                        return email, True
 
-            def contains_arabic(text):
-                return bool(re.search(r'[\u0600-\u06FF]', text))
+                def contains_arabic(text):
+                    return bool(re.search(r'[\u0600-\u06FF]', text))
 
-            with st.form("cancelled_order_form"):
                 customer_name = st.text_input("Customer Name")
                 customer_phone_1 = st.text_input("Customer Phone 1")
                 corrected_phone_1, is_valid_1, is_valid_11 = correct_phone_number(customer_phone_1)
@@ -1831,13 +1866,37 @@ def orders_management_page():
                         )
                 region = st.selectbox("Region", egypt_governorates)
                 order_number = st.text_input("Order Code")
-                hoodies = custom_number_input("Number Of Products", min_value=0,step=1)
                 order_price=custom_number_input("Order Price",min_value=0,step=1)
                 cancelled_reason=st.selectbox("Reason",reasons_1)
-                order_date = st.date_input("Order Date")
-                submit = st.form_submit_button("Add Cancelled Order")
+                if "order_products" not in st.session_state:
+                    st.session_state.order_products = []
+                if "product_count" not in st.session_state:
+                    st.session_state.product_count = 1 
+                col1, col2 = st.columns([1, 1])
+                col_1, col_2,col_3= st.columns([1,1,25])
+                with col_1:
+                    if st.button("➕"):
+                        st.session_state.product_count += 1
+                with col_2:
+                    if st.button("➖"):
+                        st.session_state.product_count -= 1
+                        st.session_state.order_products.pop()
+                for i in range(st.session_state.product_count):
+                    with col1:
+                        type_of_product = st.selectbox(f"Type {i+1}", products, key=f"type_{i}")
+                    with col2:
+                        count_of_product = custom_number_input(
+                            f"Count {i+1}", min_value=0, step=1, key=f"count_{i}"
+                        )
 
-                if submit:
+                    if len(st.session_state.order_products) <= i:
+                        st.session_state.order_products.append(
+                            {"Type": type_of_product, "Count": count_of_product}
+                        )
+                    else:
+                        st.session_state.order_products[i] = {"Type": type_of_product, "Count": count_of_product}
+                order_date = st.date_input("Order Date")
+                if st.button("Add Cancelled Order"):
                     if not customer_name.strip():
                         st.error("Customer Name is required.")
                     elif contains_arabic(customer_name):
@@ -1858,8 +1917,6 @@ def orders_management_page():
                         st.error("Order Number is required.")
                     elif not cancelled_reason.strip():
                         st.error("Reason is required")
-                    elif hoodies is None or hoodies==0:
-                        st.error("Number Of Products is required.")
                     elif order_price is None or order_price<0:
                         st.error("Order Price is required.")
                     else:
@@ -1898,12 +1955,14 @@ def orders_management_page():
                                     (customer_name, corrected_phone_1, corrected_phone_2, corrected_email)
                                 )
                                 customer_id = cursor.fetchone()[0]
+                            total_count = sum(item["Count"] for item in st.session_state.order_products)
+                            products_string = ", ".join([f"{item['Type']}:{item['Count']}" for item in st.session_state.order_products])
                             cursor.execute( """
                                                 INSERT INTO cancelled_orders 
-                                                (customer_id, region, order_number,reason,hoodies,order_price,order_date) 
-                                                VALUES (%s, %s, %s,%s,%s,%s,%s)
+                                                (customer_id, region, order_number,reason,hoodies,order_price,order_date,products) 
+                                                VALUES (%s, %s, %s,%s,%s,%s,%s,%s)
                                                 """,
-                                                (customer_id, region, order_number,cancelled_reason,hoodies,order_price,order_date),
+                                                (customer_id, region, order_number,cancelled_reason,total_count,order_price,order_date,products_string),
                                             )
                             conn.commit()
                             st.success("Cancelled order added successfully!")
@@ -1932,7 +1991,7 @@ def orders_management_page():
                 cursor.execute(
                     f"""
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                        c.email,o.region,o.reason,o.hoodies,o.order_price,o.order_date
+                        c.email,o.region,o.reason,o.products,o.hoodies,o.order_price,o.order_date
                     FROM cancelled_orders o
                     INNER JOIN customers c ON o.customer_id = c.customer_id
                     WHERE {search_condition}
@@ -1960,7 +2019,7 @@ def orders_management_page():
             
             query = f"""
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                c.email,o.region,o.reason,o.hoodies,o.order_price,o.order_date
+                c.email,o.region,o.reason,o.hoodies,o.order_price,o.order_date,o.products
             FROM cancelled_orders o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
@@ -1988,6 +2047,7 @@ def orders_management_page():
                         "Email": order[4],
                         "Region": order[5],
                         "Reason":order[6],
+                        "Products Type":order[10],
                         "Number of Products":order[7],
                         "Order Price":order[8],
                     })
@@ -2064,42 +2124,72 @@ def orders_management_page():
                 st.write("No orders found.")
 
         elif selected_2=="Modify Orders":            
-            st.subheader("Select an Order")
-            search_order_number = st.text_input("Enter Order Code")
-
-            if search_order_number:
-                conn = create_connection()
-                cursor = conn.cursor()
-                
-                cursor.execute(
-                    """
-                    SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
-                        c.email, o.region,o.reason,o.hoodies,o.order_price,o.order_date
-                    FROM cancelled_orders o
-                    INNER JOIN customers c ON o.customer_id = c.customer_id
-                    WHERE o.order_number = %s
-                    """,
-                    (search_order_number,)
-                )
-                order_details = cursor.fetchone()
-
-                if order_details:
-                    st.write("Order Details:")
-                    st.table([order_details])
+                st.subheader("Select an Order")
+                search_order_number = st.text_input("Enter Order Code")
+                if search_order_number:
+                    conn = create_connection()
+                    cursor = conn.cursor()
                     
-                    st.subheader("Update Order")
-                    with st.form("update_order_form"):
+                    cursor.execute(
+                        """
+                        SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
+                            c.email, o.region,o.reason,o.hoodies,o.order_price,o.order_date,o.products
+                        FROM cancelled_orders o
+                        INNER JOIN customers c ON o.customer_id = c.customer_id
+                        WHERE o.order_number = %s
+                        """,
+                        (search_order_number,)
+                    )
+                    order_details = cursor.fetchone()
+
+                    if order_details:
+                        st.write("Order Details:")
+                        st.table([order_details])
+                        if order_details[10]:  
+                          products_list = [
+                            {"Type": p.split(":")[0], "Count": int(p.split(":")[1])}
+                            for p in order_details[10].split(", ") if ":" in p
+                          ]
+                        else:
+                          products_list = []
+                        st.subheader("Update Order")
                         new_name=st.text_input("Customer Name",value=order_details[1])
                         new_phone1=st.text_input("Customer Phone 1",value=order_details[2])
                         new_phone2=st.text_input("Customer Phone 1",value=order_details[3])
                         new_email=st.text_input("Email",value=order_details[4])
                         new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[5]))
                         new_cancel_reason=st.selectbox("Reason",reasons_1)
-                        new_cancel_hoodies=custom_number_input("Number Of Products",value=order_details[7])
                         new_cancel_price=custom_number_input("Order Price",value=order_details[8])
+                        if not products_list:
+                           num_products = custom_number_input("Enter the number of products:", min_value=0,step=1)
+                           fake_products = []
+                           for i in range(num_products):
+                             product_type = st.selectbox(f"Enter product type for item {i+1}:",products,key=f"type_{i}")
+                             count = custom_number_input(f"Enter count for {product_type}:", min_value=0, step=1, key=f"count_{i}")
+                             if product_type:  
+                               fake_products.append({"Type": product_type, "Count": count})
+                           products_list = fake_products
+                        if "re_modified_products" not in st.session_state:
+                            st.session_state.re_modified_products = products_list
+                        for i, product in enumerate(st.session_state.re_modified_products):
+                            col1, col2, col3 = st.columns([1, 1, 1])
+                            with col1:
+                                st.session_state.re_modified_products[i]["Type"] = st.selectbox(
+                                    f"Type {i+1}", products, key=f"product_type_{i}", index=products.index(product["Type"])
+                                )
+                            with col2:
+                                st.session_state.re_modified_products[i]["Count"] = custom_number_input(
+                                    f"Count {i+1}", min_value=0, step=1, key=f"product_count_{i}", value=product["Count"]
+                                )
+                            with col3:
+                                if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
+                                    st.session_state.re_modified_products.pop(i)
+                                    st.rerun()
                         new_date=st.date_input("Order Date",value=order_details[9])
-                        update_submit = st.form_submit_button("Update Order")    
-                        if update_submit:
+                        if st.button("Update Order"):
+                                updated_products = ", ".join(
+                                    [f"{item['Type']}:{item['Count']}" for item in st.session_state.re_modified_products]
+                                )
                                 cursor.execute(
                                     """
                                     UPDATE customers
@@ -2116,39 +2206,38 @@ def orders_management_page():
                                 cursor.execute(
                                     """
                                     UPDATE cancelled_orders
-                                    SET region = %s,reason=%s,hoodies=%s,order_price=%s,order_date=%s
+                                    SET region = %s,reason=%s,hoodies=%s,order_price=%s,order_date=%s,products=%s
                                     WHERE order_number = %s
                                     """,
-                                    (new_region, new_cancel_reason, new_cancel_hoodies, new_cancel_price, new_date, search_order_number)
+                                    (new_region, new_cancel_reason,sum(item["Count"] for item in st.session_state.re_modified_products), new_cancel_price, new_date, updated_products, search_order_number)
                                 )
 
                                 conn.commit()
                                 st.success("Order updated successfully!")
                                 log_action(st.session_state.username, "Update Cancelled Order", f"Order ID: {search_order_number}, Customer: {new_name}")
 
-                    st.subheader("Remove Order")
-                    with st.form("delete_order_form"):
-                        delete_password = st.text_input("Enter Password to Confirm Deletion", type="password")
-                        delete_submit = st.form_submit_button("Delete Order")
+                        st.subheader("Remove Order")
+                        with st.form("delete_order_form"):
+                            delete_password = st.text_input("Enter Password to Confirm Deletion", type="password")
+                            delete_submit = st.form_submit_button("Delete Order")
 
-                        if delete_submit:
-                            if delete_password == "admin":
-                                cursor.execute(
-                                    "DELETE FROM cancelled_orders WHERE order_number = %s", (search_order_number,)
-                                )
-                                conn.commit()
-                                st.success("Order deleted successfully!")
-                                log_action(st.session_state.username, "Delete Cancelled Order", f"Order ID: {search_order_number}, Customer: {new_name}")
-                            else:
-                                st.error("Incorrect password. Order deletion canceled.")
-                else:
-                    st.write("No order found with the given Order Number.")
-                
-                conn.close()
+                            if delete_submit:
+                                if delete_password == "admin":
+                                    cursor.execute(
+                                        "DELETE FROM cancelled_orders WHERE order_number = %s", (search_order_number,)
+                                    )
+                                    conn.commit()
+                                    st.success("Order deleted successfully!")
+                                    log_action(st.session_state.username, "Delete Cancelled Order", f"Order ID: {search_order_number}, Customer: {new_name}")
+                                else:
+                                    st.error("Incorrect password. Order deletion canceled.")
+                    else:
+                            st.write("No order found with the given Order Number.")
+                    conn.close()
         elif selected_2=="Delete Orders":
             query = """
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                c.email,o.region,o.reason,o.hoodies,o.order_price,o.order_date
+                c.email,o.region,o.reason,o.hoodies,o.order_price,o.order_date,o.products
             FROM cancelled_orders o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
@@ -2311,7 +2400,27 @@ def orders_management_page():
             df_date = pd.DataFrame(date_data, columns=["Date", "Total Orders", "Total Sales"])
             df_date["Date"] = pd.to_datetime(df_date["Date"])  
             df_date.sort_values(by="Date", inplace=True)  
+            query = """
+                    WITH product_orders AS (
+                        SELECT
+                            o.order_number,
+                            TRIM(SPLIT_PART(regexp_split_to_table(o.products, ','), ':', 1)) AS product_name
+                        FROM cancelled_orders o
+                    ),
+                    distinct_orders AS (
+                        SELECT COUNT(DISTINCT order_number) AS total_orders FROM cancelled_orders
+                    )
+                    SELECT 
+                        product_name,
+                        COUNT(DISTINCT order_number) AS order_count,
+                        (COUNT(DISTINCT order_number) * 100.0) / (SELECT total_orders FROM distinct_orders) AS percentage
+                    FROM product_orders
+                    WHERE product_name IS NOT NULL
+                    GROUP BY product_name
+                    ORDER BY percentage DESC;
 
+                    """
+            df_products_percentage = pd.read_sql(query, conn)
             conn.close()
             percentage_cancelled = total_orders / (total_orders + total_completed + total_returned)
             percentage__cancelled = total_orders / (total_orders + total_returned)
@@ -2324,9 +2433,10 @@ def orders_management_page():
                     )
                     st.markdown("")
                     metric_card_with_icon(
-                    "Percentage of Cancelled Orders", 
+                    "Percentage of Cancelled Orders(Cancelled & Returned only)", 
                     f"{percentage__cancelled * 100:.2f}%", "", 
-                    "The percentage of cancelled orders out of cancelled and returned orders only."
+                    """The percentage of cancelled orders out of cancelled and returned orders only.
+                    نسبة الاوردرات اللي اتلغت بالنسبه للي اتلغت ورجعت بس"""
                     )
             with col2:
                     metric_card_with_icon(
@@ -2344,7 +2454,8 @@ def orders_management_page():
                 metric_card_with_icon(
                     "Percentage of Cancelled Orders", 
                     f"{percentage_cancelled * 100:.2f}%", "", 
-                    "The percentage of cancelled orders out of total orders."
+                    """The percentage of cancelled orders out of total orders.
+                    نسبة الاوردرات اللي اتلغت بالنسبه لكل الاوردرات"""
                 )
 
             fig_cancelled = px.bar(
@@ -2393,8 +2504,14 @@ def orders_management_page():
                 title="Orders Over Time",
                 labels={"Date": "Date", "Total Orders": "Number of Orders"}
             )
-            st.plotly_chart(fig)
-
+            st.plotly_chart(fig, use_container_width=True)
+            fig = px.bar(df_products_percentage, x="product_name", y="percentage", 
+             text="percentage", labels={"product_name": "Product Type", "percentage": "Percentage (%)"},
+             title="Product Order Percentage", color="percentage",
+             color_continuous_scale="blues")
+            fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+            fig.update_layout(yaxis_title="Percentage (%)", xaxis_title="Product Type")
+            st.plotly_chart(fig,use_container_width=True)
     elif page == "Returned Orders":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>📦Returned Orders</h1>", unsafe_allow_html=True)
         selected_1 = option_menu(
@@ -2510,9 +2627,11 @@ def orders_management_page():
             order_date = st.date_input("Order Date")
             if status=="Go Only":
                 shipping_price = custom_number_input("Shipping Price", min_value=0,step=1)
+                customer_shipping_price=custom_number_input("Shipping Price paid by customer", min_value=0,step=1)
             elif status=="Go And Back":
                 go_shipping_price=custom_number_input("Go Shipping Price", min_value=0,step=1)
-                back_shipping_price=custom_number_input("Bacck Shipping Price", min_value=0,step=1)
+                back_shipping_price=custom_number_input("Back Shipping Price", min_value=0,step=1)
+                customer_shipping_price=custom_number_input("Shipping Price paid by customer", min_value=0,step=1)
                 shipping_price=go_shipping_price+back_shipping_price
 
             if st.button("Add Returned Order"):
@@ -2544,6 +2663,9 @@ def orders_management_page():
                         st.error("Order Price is required.")
                     elif shipping_price is None or shipping_price<0:
                         st.error("Shipping Price is required.")
+                    elif customer_shipping_price is None or customer_shipping_price<0:
+                        st.error("Shipping price paid by customer is required.")
+                    
                     else:
                         conn = create_connection()
                         cursor = conn.cursor()
@@ -2583,8 +2705,8 @@ def orders_management_page():
                             total_count = sum(item["Count"] for item in st.session_state.re_order_products)
                             products_string = ", ".join([f"{item['Type']}:{item['Count']}" for item in st.session_state.re_order_products])
                             cursor.execute(
-                                "INSERT INTO returned_orders (customer_id, ship_company, region, order_number,reason,hoodies,order_price,shipping_price,status,products,order_date) VALUES (%s, %s, %s, %s,%s,%s,%s,%s,%s,%s,%s)",
-                                (customer_id, ship_company, region, order_number,reason,total_count,order_price,shipping_price,status,products_string,order_date)
+                                "INSERT INTO returned_orders (customer_id, ship_company, region, order_number,reason,hoodies,order_price,shipping_price,status,products,order_date,customer_shipping_price) VALUES (%s, %s, %s, %s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                                (customer_id, ship_company, region, order_number,reason,total_count,order_price,shipping_price,status,products_string,order_date,customer_shipping_price)
                             )
 
                             conn.commit()
@@ -2614,7 +2736,7 @@ def orders_management_page():
                 cursor.execute(
                     f"""
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                        c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price,o.shipping_price,o.products,o.order_date
+                        c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price,o.shipping_price,o.products,o.order_date,o.customer_shipping_price
                     FROM returned_orders o
                     INNER JOIN customers c ON o.customer_id = c.customer_id
                     WHERE {search_condition}
@@ -2644,7 +2766,7 @@ def orders_management_page():
             
             query = f"""
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                c.email, o.ship_company, o.region, o.reason,o.hoodies,o.order_price,o.shipping_price,o.products,o.order_date
+                c.email, o.ship_company, o.region, o.reason,o.hoodies,o.order_price,o.shipping_price,o.products,o.order_date,o.customer_shipping_price
             FROM returned_orders o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
@@ -2681,7 +2803,7 @@ def orders_management_page():
                         "Shipping Price in Shipping Company":order[10],
                         "Order Profit": (order[9] or 0) - (order[10] or 0),
                         "Type of Products": order[11],
-                        "Actual Shipping Cost": (order[10] or 0) - 60,
+                        "Actual Shipping Cost": (order[10] or 0) - (order[13] or 0),
                     })
                 df = pd.DataFrame(data)
                 st.write("All Orders:")
@@ -2772,7 +2894,7 @@ def orders_management_page():
                     cursor.execute(
                         """
                         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
-                            c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price,o.shipping_price,o.order_date,o.status,o.products
+                            c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price,o.shipping_price,o.order_date,o.status,o.products,o.customer_shipping_price
                         FROM returned_orders o
                         INNER JOIN customers c ON o.customer_id = c.customer_id
                         WHERE o.order_number = %s
@@ -2802,13 +2924,14 @@ def orders_management_page():
                         new_reason = st.selectbox("Reason",["Customer","Delvirey Man","Quality","Size","Team"])
                         new_price=custom_number_input("Order Price",value=order_details[9])
                         new_shipping_price=custom_number_input("Shipping Price",value=order_details[10])
+                        new_customer_shipping_price=custom_number_input("Shipping price paid by customer",value=order_details[14])
                         if not products_list:
                            num_products = custom_number_input("Enter the number of products:", min_value=0,step=1)
                            fake_products = []
                            for i in range(num_products):
                              product_type = st.selectbox(f"Enter product type for item {i+1}:",products,key=f"type_{i}")
                              count = custom_number_input(f"Enter count for {product_type}:", min_value=0, step=1, key=f"count_{i}")
-                             if product_type:  # Ensure input is not empty
+                             if product_type:  
                                fake_products.append({"Type": product_type, "Count": count})
                            products_list = fake_products
                         if "re_modified_products" not in st.session_state:
@@ -2848,10 +2971,10 @@ def orders_management_page():
                                 cursor.execute(
                                     """
                                     UPDATE returned_orders
-                                    SET ship_company = %s, region = %s,reason=%s,hoodies=%s,order_price=%s,shipping_price=%s,order_date=%s,status=%s,products=%s
+                                    SET ship_company = %s, region = %s,reason=%s,hoodies=%s,order_price=%s,shipping_price=%s,order_date=%s,status=%s,products=%s,customer_shipping_price=%s
                                     WHERE order_number = %s
                                     """,
-                                    (new_ship_company, new_region, new_reason, sum(item["Count"] for item in st.session_state.re_modified_products), new_price, new_shipping_price, new_date, new_status,updated_products, search_order_number)
+                                    (new_ship_company, new_region, new_reason, sum(item["Count"] for item in st.session_state.re_modified_products), new_price, new_shipping_price, new_date, new_status,updated_products, new_customer_shipping_price, search_order_number)
                                 )
                                 conn.commit()
                                 del st.session_state.re_modified_products
@@ -2880,7 +3003,7 @@ def orders_management_page():
         elif selected_1=="Delete Orders":
             query = """
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                c.email, o.ship_company, o.region, o.reason,o.hoodies,o.order_price,o.shipping_price,o.order_date
+                c.email, o.ship_company, o.region, o.reason,o.hoodies,o.order_price,o.shipping_price,o.order_date,o.customer_shipping_price
             FROM returned_orders o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
@@ -2908,7 +3031,7 @@ def orders_management_page():
                         "Order Price":order[9],
                         "Shipping Price in Shipping Company":order[10],
                         "Order Profit": (order[9] or 0) - (order[10] or 0),
-                        "Actual Shipping Cost": (order[10] or 0) - 60,
+                        "Actual Shipping Cost": (order[10] or 0) - (order[12] or 0),
                     }
                     for order in all_orders
                 ]
@@ -2989,14 +3112,15 @@ def orders_management_page():
                     COALESCE(SUM(o.hoodies), 0) AS total_products,
                     COALESCE(SUM(o.order_price), 0) AS total_prices,
                     COALESCE(SUM(o.shipping_price), 0) AS total_shipping_prices,
-                    COALESCE(SUM(CASE WHEN o.status = 'Go Only' THEN o.shipping_price ELSE 0 END), 0) AS total_shipping_prices_go,
-                    COALESCE(SUM(CASE WHEN o.status = 'Go And Back' THEN o.shipping_price ELSE 0 END), 0) AS total_shipping_prices_back
+                    COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_cutomer_prices,
+                    COALESCE(SUM(CASE WHEN o.status = 'Go Only' THEN o.shipping_price ELSE 0 END), 0)-COALESCE(SUM(CASE WHEN o.status = 'Go Only' THEN o.customer_shipping_price ELSE 0 END), 0) AS total_shipping_prices_go,
+                    COALESCE(SUM(CASE WHEN o.status = 'Go And Back' THEN o.shipping_price ELSE 0 END), 0)-COALESCE(SUM(CASE WHEN o.status = 'Go And Back' THEN o.customer_shipping_price ELSE 0 END), 0) AS total_shipping_prices_back
                 FROM returned_orders o
                 """
             cursor.execute(total_query)
-            total_orders, total_products, total_prices, total_shipping_prices,total_shipping_prices_go,total_shipping_prices_back = cursor.fetchone()
+            total_orders, total_products, total_prices, total_shipping_prices,total_shipping_cutomer_prices,total_shipping_prices_go,total_shipping_prices_back = cursor.fetchone()
             total_shipping_cost=total_shipping_prices
-            total_shipping_prices=(total_shipping_prices-(60*total_orders))
+            total_shipping_prices=total_shipping_prices-total_shipping_cutomer_prices
             total_profit = total_prices - total_shipping_cost
             query = """
                 SELECT 
@@ -3088,7 +3212,7 @@ def orders_management_page():
             SELECT 
                 o.order_number,
                 o.products,
-                o.shipping_price
+                o.shipping_price-o.customer_shipping_price
             FROM returned_orders o
             """
             cursor.execute(query)
@@ -3104,7 +3228,7 @@ def orders_management_page():
                 total_quantity = sum(products_dict.values()) 
 
                 for product_type, quantity in products_dict.items():
-                    shipping_price_for_product = (quantity / total_quantity) * (total_shipping_price-60)
+                    shipping_price_for_product = (quantity / total_quantity)
 
                     if product_type in product_shipping:
                         product_shipping[product_type] += shipping_price_for_product
@@ -3113,10 +3237,12 @@ def orders_management_page():
 
             df__shipping = pd.DataFrame(product_shipping.items(), columns=["Product Type", "Total Shipping Price"])
             df__shipping = df__shipping.sort_values(by="Total Shipping Price", ascending=False)
+            total_shipping_cost = df__shipping["Total Shipping Price"].sum()
+            df__shipping["Percentage"] = (df__shipping["Total Shipping Price"] / total_shipping_cost) * 100
             shipping_company_query = """
                 SELECT 
                     o.status AS Status,
-                    SUM(o.shipping_price - 60) AS Total_Shipping_Cost
+                    SUM(o.shipping_price)-SUM(o.customer_shipping_price) AS Total_Shipping_Cost
                 FROM returned_orders o
                 GROUP BY o.status
                 ORDER BY Total_Shipping_Cost DESC
@@ -3130,7 +3256,7 @@ def orders_management_page():
             shipping_company_query = """
                 SELECT 
                     o.reason AS Reason,
-                    SUM(o.shipping_price - 60) AS Total_Shipping_Cost
+                    SUM(o.shipping_price) - SUM(o.customer_shipping_price) AS Total_Shipping_Cost
                 FROM returned_orders o
                 GROUP BY o.reason
                 ORDER BY Total_Shipping_Cost DESC
@@ -3140,8 +3266,28 @@ def orders_management_page():
 
             df____shipping = pd.DataFrame(shipping_data, columns=["Reason", "Total Shipping Cost"])
             total_shipping_cost = df____shipping["Total Shipping Cost"].sum()
-            df___shipping["Percentage"] = (df____shipping["Total Shipping Cost"] / total_shipping_cost) * 100
+            df____shipping["Percentage"] = (df____shipping["Total Shipping Cost"] / total_shipping_cost) * 100
+            query = """
+                    WITH product_orders AS (
+                        SELECT
+                            o.order_number,
+                            TRIM(SPLIT_PART(regexp_split_to_table(o.products, ','), ':', 1)) AS product_name
+                        FROM returned_orders o
+                    ),
+                    distinct_orders AS (
+                        SELECT COUNT(DISTINCT order_number) AS total_orders FROM returned_orders
+                    )
+                    SELECT 
+                        product_name,
+                        COUNT(DISTINCT order_number) AS order_count,
+                        (COUNT(DISTINCT order_number) * 100.0) / (SELECT total_orders FROM distinct_orders) AS percentage
+                    FROM product_orders
+                    WHERE product_name IS NOT NULL
+                    GROUP BY product_name
+                    ORDER BY percentage DESC;
 
+                    """
+            df_products_percentage = pd.read_sql(query, conn)
             conn.close()
             percentage_returned = total_orders / (total_orders + total_cancelled + total_comp)
             percentage__returned = total_orders / (total_orders + total_cancelled)
@@ -3163,7 +3309,8 @@ def orders_management_page():
                     metric_card_with_icon(
                         "Percentage of Shipping Price (Go Only)", 
                         f"{(total_shipping_prices_go / total_shipping_prices):,.2f}","", 
-                        "perctange of total shipping cost for orders which go only."
+                        """perctange of total shipping cost for orders which go only.  
+                        النسبه اللي بتمثلها فلوس شحن الاوردرات اللي اتشحنت مره الفعليه بالنسبه للشحن الكلي الفعلي"""
                     )
 
             with col2:
@@ -3182,12 +3329,12 @@ def orders_management_page():
                     metric_card_with_icon(
                         "Percentage of Shipping Price (Go And Back)", 
                         f"{(total_shipping_prices_back / total_shipping_prices):,.2f}","", 
-                        "perctange of total shipping cost for orders which go and back."
+                        """perctange of total shipping cost for orders which go and back.
+                        النسبه اللي بتمثلها فلوس شحن الاوردرات اللي اتشحنت مرتين الفعليه بالنسبه للشحن الكلي الفعلي"""
                     )
-
             with col3:
                     metric_card_with_icon(
-                        "Total Shipping Price", 
+                        "Total Shipping Price(Actual)", 
                         f"{int(total_shipping_prices):,}".replace(",", "."),"", 
                         "The total shipping cost incurred for all orders."
                     )
@@ -3207,11 +3354,12 @@ def orders_management_page():
                     metric_card_with_icon(
                         "Total Profit", 
                         f"{int(total_profit):,}".replace(",", "."),"", 
-                        "The total profit (total revenue minus total shipping cost)."
+                        """The total profit (total revenue minus total shipping cost).
+                        االمبلغ الكلي مطروح منه الشحن الكلي مش الفعلي بس"""
                     )
                     st.markdown("")
                     metric_card_with_icon(
-                    "Percentage of Returned Orders", 
+                    "Percentage of Returned Orders(Cancelled & Returned Only)", 
                     f"{percentage__returned * 100:.2f}%", "", 
                     "The percentage of returned orders out of cancelled and returned orders only."
                     )
@@ -3220,7 +3368,7 @@ def orders_management_page():
                 df, 
                 x="Region", 
                 y="Total Orders", 
-                title="Total Orders by Region",
+                title="Total Orders Distribution by Region",
                 labels={"Region": "Region", "Total Orders": "Number of Orders"},
                 text=df['Percentage'].apply(lambda x: f"{x:.2f}%"),
                 color="Region",  
@@ -3241,7 +3389,7 @@ def orders_management_page():
             df_shipping, 
             x="Shipping Company", 
             y="Total Orders", 
-            title="Total Orders by Shipping Company",
+            title="Total Orders Distribution by Shipping Company",
             labels={"Shipping Company": "Shipping Company", "Total Orders": "Number of Orders"},
             text=df_shipping['Percentage'].apply(lambda x: f"{x:.2f}%"), 
             color="Shipping Company",
@@ -3260,7 +3408,7 @@ def orders_management_page():
             df_reason, 
             x="Reason", 
             y="Total Orders", 
-            title="Total Orders by Reason",
+            title="Total Orders Distribution by Reason",
             labels={"Reason": "Reason", "Total Orders": "Number of Orders"},
             text=df_reason['Percentage'].apply(lambda x: f"{x:.2f}%"),
             color="Reason",
@@ -3279,7 +3427,7 @@ def orders_management_page():
             df_status, 
             x="Status", 
             y="Total Orders", 
-            title="Total Orders by Status",
+            title="Total Orders Distribution by Status",
             labels={"Status": "Status", "Total Orders": "Number of Orders"},
             text=df_status['Percentage'].apply(lambda x: f"{x:.2f}%"),
             color="Status",
@@ -3309,10 +3457,10 @@ def orders_management_page():
                 title="Shipping Price Distribution by Product Type",
                 labels={"Total Shipping Price": "Shipping Price (Currency)"},
                 template="plotly_white",
-                text="Total Shipping Price",
+                 text=df__shipping['Percentage'].apply(lambda x: f"{x:.2f}%"),
                 color="Product Type"
             )
-            fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+            fig.update_traces(texttemplate="%{text}", textposition="outside")
             st.plotly_chart(fig,use_container_width=True)
                         
             fig = px.bar(
@@ -3322,10 +3470,10 @@ def orders_management_page():
                 title="Shipping Price Distribution by Status",
                 labels={"Total Shipping Cost": "Shipping Cost (Currency)"},
                 template="plotly_white",
-                text="Total Shipping Cost",
+                text=df___shipping['Percentage'].apply(lambda x: f"{x:.2f}%"),
                 color="Status"
             )
-            fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+            fig.update_traces(texttemplate="%{text}", textposition="outside")
             st.plotly_chart(fig,use_container_width=True)
             fig = px.bar(
                 df____shipping,
@@ -3334,10 +3482,17 @@ def orders_management_page():
                 title="Shipping Price Distribution by Reason",
                 labels={"Total Shipping Cost": "Shipping Cost (Currency)"},
                 template="plotly_white",
-                text="Total Shipping Cost",
+                text=df____shipping['Percentage'].apply(lambda x: f"{x:.2f}%"),
                 color="Reason"
             )
-            fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+            fig.update_traces(texttemplate="%{text}", textposition="outside")
+            st.plotly_chart(fig,use_container_width=True)
+            fig = px.bar(df_products_percentage, x="product_name", y="percentage", 
+             text="percentage", labels={"product_name": "Product Type", "percentage": "Percentage (%)"},
+             title="Product Order Percentage", color="percentage",
+             color_continuous_scale="blues")
+            fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+            fig.update_layout(yaxis_title="Percentage (%)", xaxis_title="Product Type")
             st.plotly_chart(fig,use_container_width=True)
     elif page == "Problems":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>🚨Problems</h1>", unsafe_allow_html=True)
@@ -3462,6 +3617,7 @@ def orders_management_page():
                 else:
                     st.session_state.sh_order_products[i] = {"Type": type_of_product, "Count": count_of_product}          
             shipping_price = custom_number_input("Shipping Price", min_value=0, step=1)
+            customer_shipping_price = custom_number_input("Shipping price paid by customer", min_value=0, step=1)
             if st.button("Add Order"):
                 if not customer_name.strip():
                     st.error("Customer Name is required.")
@@ -3489,6 +3645,8 @@ def orders_management_page():
                     st.error("Status is required.")
                 elif shipping_price is None or shipping_price < 0:
                     st.error("Order Price is required.")
+                elif customer_shipping_price is None or customer_shipping_price < 0:
+                    st.error("Shipping price paid by customer is required.")
                 else:
                     conn = create_connection()
                     cursor = conn.cursor()
@@ -3510,8 +3668,8 @@ def orders_management_page():
                     total_count = sum(item["Count"] for item in st.session_state.sh_order_products)
                     products_string = ", ".join([f"{item['Type']}:{item['Count']}" for item in st.session_state.sh_order_products])
                     cursor.execute(
-                            "INSERT INTO shipping (customer_id, ship_company, region, order_number, status, shipping_price, hoodies,products,reason) VALUES (%s, %s, %s, %s, %s, %s, %s,%s,%s)",
-                            (customer_id, ship_company, region, order_number, status, shipping_price, total_count,products_string,reason)
+                            "INSERT INTO shipping (customer_id, ship_company, region, order_number, status, shipping_price, hoodies,products,reason,customer_shipping_price) VALUES (%s, %s, %s, %s, %s, %s, %s,%s,%s,%s)",
+                            (customer_id, ship_company, region, order_number, status, shipping_price, total_count,products_string,reason,customer_shipping_price)
                         )
 
                     conn.commit()
@@ -3543,7 +3701,7 @@ def orders_management_page():
                 cursor.execute(
                     f"""
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                        c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies,o.reason,o.products
+                        c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies,o.reason,o.products,o.customer_shipping_price
                     FROM shipping o
                     INNER JOIN customers c ON o.customer_id = c.customer_id
                     WHERE {search_condition}
@@ -3575,7 +3733,7 @@ def orders_management_page():
             
             query = f"""
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies,o.reason,o.products
+                c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies,o.reason,o.products,o.customer_shipping_price
             FROM shipping o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
@@ -3608,7 +3766,7 @@ def orders_management_page():
                         "Status": order[7],
                         "Reason":order[10],
                         "Shipping Price In Shipping Company":order[8],
-                        "Actual Shipping Cost": (order[8] or 0) - 60,
+                        "Actual Shipping Cost": (order[8] or 0) - (order[12] or 0),
                         "Type of Products":order[11],
                         "Number of Products":order[9]
                     })
@@ -3699,7 +3857,7 @@ def orders_management_page():
                 cursor.execute(
                     """
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
-                        c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies,o.reason,o.products
+                        c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies,o.reason,o.products,o.customer_shipping_price
                     FROM shipping o
                     INNER JOIN customers c ON o.customer_id = c.customer_id
                     WHERE o.order_number = %s
@@ -3723,6 +3881,7 @@ def orders_management_page():
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
                     new_status = st.selectbox("Status",["Delivery Man","Exchanged","Team"])
                     new_price=custom_number_input("Shipping Price",value=order_details[8])
+                    new_customer_shipping_price=custom_number_input("Shipping price paid by customer",value=order_details[12])
                     if "sh_modified_products" not in st.session_state:
                             st.session_state.sh_modified_products = products_list
                     for i, product in enumerate(st.session_state.sh_modified_products):
@@ -3766,10 +3925,10 @@ def orders_management_page():
                                 cursor.execute(
                                     """
                                     UPDATE shipping
-                                    SET ship_company = %s, region = %s,status=%s,shipping_price=%s,hoodies=%s,reason=%s,products=%s
+                                    SET ship_company = %s, region = %s,status=%s,shipping_price=%s,hoodies=%s,reason=%s,products=%s,customer_shipping_price=%s
                                     WHERE order_number = %s
                                     """,
-                                    (new_ship_company, new_region, new_status,new_price,sum(item["Count"] for item in st.session_state.sh_modified_products), new_problem_reason,updated_products, search_order_number)
+                                    (new_ship_company, new_region, new_status,new_price,sum(item["Count"] for item in st.session_state.sh_modified_products), new_problem_reason,updated_products, new_customer_shipping_price, search_order_number)
                                 )
 
 
@@ -3800,7 +3959,7 @@ def orders_management_page():
         elif selected=='Delete Orders':
             query = """
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies,o.reason
+                c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies,o.reason,o.customer_shipping_price
             FROM shipping o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
@@ -3825,7 +3984,7 @@ def orders_management_page():
                         "Status": order[7],
                         "Reason":order[10],
                         "Shipping Price In Shipping Company":order[8],
-                        "Actual Shipping Cost": (order[8] or 0) - 60,
+                        "Actual Shipping Cost": (order[8] or 0) -(order[11] or 0),
                         "Number of Products":order[9]
                     }
                     for order in all_orders
@@ -3905,12 +4064,11 @@ def orders_management_page():
                 SELECT 
                     COUNT(o.order_number) AS total_orders, 
                     COALESCE(SUM(o.hoodies), 0) AS total_products,
-                    COALESCE(SUM(o.shipping_price), 0) AS total_shipping_prices
+                    COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_prices
                 FROM shipping o
                 """
             cursor.execute(total_query)
             total_orders, total_products, total_shipping_prices = cursor.fetchone()
-            total_shipping_prices=total_shipping_prices-(60*total_orders)
             query = """
                 SELECT 
                     o.region, 
@@ -3972,7 +4130,7 @@ def orders_management_page():
             SELECT 
                 o.order_number,
                 o.products,
-                o.shipping_price
+                o.shipping_price-o.customer_shipping_price
             FROM shipping o
             """
             cursor.execute(query)
@@ -3988,7 +4146,7 @@ def orders_management_page():
                 total_quantity = sum(products_dict.values()) 
 
                 for product_type, quantity in products_dict.items():
-                    shipping_price_for_product = (quantity / total_quantity) * (total_shipping_price-60)
+                    shipping_price_for_product = (quantity / total_quantity)
 
                     if product_type in product_shipping:
                         product_shipping[product_type] += shipping_price_for_product
@@ -3997,10 +4155,12 @@ def orders_management_page():
 
             df__shipping = pd.DataFrame(product_shipping.items(), columns=["Product Type", "Total Shipping Price"])
             df__shipping = df__shipping.sort_values(by="Total Shipping Price", ascending=False)
+            total_shipping_cost = df__shipping["Total Shipping Price"].sum()
+            df__shipping["Percentage"] = (df__shipping["Total Shipping Price"] / total_shipping_cost) * 100
             shipping_company_query = """
                 SELECT 
                     o.status AS Status,
-                    SUM(o.shipping_price - 60) AS Total_Shipping_Cost
+                    SUM(o.shipping_price - o.customer_shipping_price) AS Total_Shipping_Cost
                 FROM shipping o
                 GROUP BY o.status
                 ORDER BY Total_Shipping_Cost DESC
@@ -4014,7 +4174,7 @@ def orders_management_page():
             shipping_company_query = """
                 SELECT 
                     o.reason AS Reason,
-                    SUM(o.shipping_price - 60) AS Total_Shipping_Cost
+                    SUM(o.shipping_price - o.customer_shipping_price) AS Total_Shipping_Cost
                 FROM shipping o
                 GROUP BY o.reason
                 ORDER BY Total_Shipping_Cost DESC
@@ -4025,6 +4185,27 @@ def orders_management_page():
             df_shipping_reason = pd.DataFrame(shipping_data, columns=["Reason", "Total Shipping Cost"])
             total_shipping_cost = df_shipping_reason["Total Shipping Cost"].sum()
             df_shipping_reason["Percentage"] = (df_shipping_reason["Total Shipping Cost"] / total_shipping_cost) * 100
+            query = """
+                    WITH product_orders AS (
+                        SELECT
+                            o.order_number,
+                            TRIM(SPLIT_PART(regexp_split_to_table(o.products, ','), ':', 1)) AS product_name
+                        FROM shipping o
+                    ),
+                    distinct_orders AS (
+                        SELECT COUNT(DISTINCT order_number) AS total_orders FROM shipping
+                    )
+                    SELECT 
+                        product_name,
+                        COUNT(DISTINCT order_number) AS order_count,
+                        (COUNT(DISTINCT order_number) * 100.0) / (SELECT total_orders FROM distinct_orders) AS percentage
+                    FROM product_orders
+                    WHERE product_name IS NOT NULL
+                    GROUP BY product_name
+                    ORDER BY percentage DESC;
+
+                    """
+            df_products_percentage = pd.read_sql(query, conn)
             conn.close()
             avg_shipping_price= total_shipping_prices/total_orders
             avg_shipping_price_1=total_shipping_prices/total_products
@@ -4051,7 +4232,7 @@ def orders_management_page():
                     metric_card_with_icon(
                         "Total Shipping Prices", 
                         f"{int(total_shipping_prices):,}".replace(",", "."),"", 
-                        "اThe total shipping cost incurred for all orders."
+                         "The total shipping cost incurred for all orders."
                     )
             with col4:
                     metric_card_with_icon(
@@ -4145,10 +4326,10 @@ def orders_management_page():
                 title="Shipping Price Distribution by Product Type",
                 labels={"Total Shipping Price": "Shipping Price (Currency)"},
                 template="plotly_white",
-                text="Total Shipping Price",
+                text=df__shipping['Percentage'].apply(lambda x: f"{x:.2f}%"),
                 color="Product Type"
             )
-            fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+            fig.update_traces(texttemplate="%{text}", textposition="outside")
             st.plotly_chart(fig,use_container_width=True)
             fig = px.bar(
                 df_shipping_status,
@@ -4157,10 +4338,10 @@ def orders_management_page():
                 title="Shipping Price Distribution by Status",
                 labels={"Total Shipping Cost": "Shipping Cost (Currency)"},
                 template="plotly_white",
-                text="Total Shipping Cost",
+                 text=df_shipping_status['Percentage'].apply(lambda x: f"{x:.2f}%"),
                 color="Status"
             )
-            fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+            fig.update_traces(texttemplate="%{text}", textposition="outside")
             st.plotly_chart(fig,use_container_width=True)
             fig = px.bar(
                 df_shipping_reason,
@@ -4169,10 +4350,17 @@ def orders_management_page():
                 title="Shipping Price Distribution by Reason",
                 labels={"Total Shipping Cost": "Shipping Cost (Currency)"},
                 template="plotly_white",
-                text="Total Shipping Cost",
+                 text=df_shipping_reason['Percentage'].apply(lambda x: f"{x:.2f}%"),
                 color="Reason"
             )
-            fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+            fig.update_traces(texttemplate="%{text}", textposition="outside")
+            st.plotly_chart(fig,use_container_width=True)
+            fig = px.bar(df_products_percentage, x="product_name", y="percentage", 
+             text="percentage", labels={"product_name": "Product Type", "percentage": "Percentage (%)"},
+             title="Product Order Percentage", color="percentage",
+             color_continuous_scale="blues")
+            fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+            fig.update_layout(yaxis_title="Percentage (%)", xaxis_title="Product Type")
             st.plotly_chart(fig,use_container_width=True)
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
