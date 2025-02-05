@@ -180,14 +180,14 @@ def orders_management_page():
         
     if st.session_state.username=="walid" and  st.session_state.selected_season== "Winter":
         with st.sidebar:
-            page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Problems','Customers','Analysis','Activity Logs'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people','graph-up','clock'], menu_icon="list", default_index=0)
+            page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Problems','Customers','Analysis','Information','Activity Logs'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people','graph-up','exclamation-circle','clock'], menu_icon="list", default_index=0)
             if st.button("Logout"):
                 st.session_state.logged_in = False
                 log_action(st.session_state.username, "Logout", "Successful logout")
                 st.rerun()
     elif st.session_state.selected_season== "Winter":
         with st.sidebar:
-            page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Problems','Customers'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people'], menu_icon="list", default_index=0)
+            page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Problems','Customers','Information'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people','exclamation-circle'], menu_icon="list", default_index=0)
             if st.button("Logout"):
                 st.session_state.logged_in = False
                 log_action(st.session_state.username, "Logout", "Successful logout")
@@ -573,14 +573,30 @@ def orders_management_page():
         conn = create_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM customers")
-        cutomers = cursor.fetchall()
+        customers = cursor.fetchall()
         conn.close()
         
         columns = ["Customer Name", "Customer Phone 1", "Customer Phone 2", "Email","Order Id"] 
-        cutomers_df = pd.DataFrame(cutomers, columns=columns)
-        cutomers_df.drop("Order Id",axis=1,inplace=True)
-        st.dataframe(cutomers_df) 
-
+        customers_df = pd.DataFrame(customers, columns=columns)
+        customers_df.drop("Order Id",axis=1,inplace=True)
+        st.dataframe(customers_df) 
+        csv_data = customers_df.to_csv(index=False)
+        st.download_button(
+                    label="Download as CSV",
+                    data=csv_data,
+                    file_name="Customers.csv",
+                    mime="text/csv"
+                )     
+        excel_data = io.BytesIO()
+        with pd.ExcelWriter(excel_data, engine="xlsxwriter") as writer:
+            customers_df.to_excel(writer, index=False, sheet_name="Customers")
+        excel_data.seek(0)
+        st.download_button(
+                    label="Download as Excel",
+                    data=excel_data,
+                    file_name="Customers.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
     elif page == "Activity Logs":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>🕑Activity Logs</h1>", unsafe_allow_html=True)   
         st.markdown("") 
@@ -4362,6 +4378,83 @@ def orders_management_page():
             fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
             fig.update_layout(yaxis_title="Percentage (%)", xaxis_title="Product Type")
             st.plotly_chart(fig,use_container_width=True)
+    elif page == "Information":
+        st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>📝Information</h1>", unsafe_allow_html=True)
+        order_statuses = {
+            "Cancelled": {
+                "en": "The order was not shipped.",
+                "ar": "لم يتم شحن الاوردر"
+            },
+            "Cancelled (Out of Stock)": {
+                "en": "The order was cancelled due to product unavailability.",
+                "ar": "الاوردر تم الغاءه بسبب عدم توفر المنتج"
+            },
+            "Cancelled (Team)": {
+                "en": "The order was not confirmed due to the team (order was forgotten).",
+                "ar": "لم يتم تأكيد الاوردر بسبب التيم ( الاوردر اتنسى)"
+            },
+            "Cancelled (Customer)": {
+                "en": "The customer cancelled the order.",
+                "ar": "العميل قام بإلغاء الأوردر"
+            },
+            "Cancelled (Not Confirmed)": {
+                "en": "The customer did not confirm the order.",
+                "ar": "العميل لم يقم بتأكيد الاوردر"
+            },
+            "Returned (Go Only)": {
+                "en": "The order was shipped but returned in the same order, and the customer refused to receive it.",
+                "ar": "الاوردر تم شحنه ورجع في نفس الاوردر و العميل رفض استلامه(مرتجع)"
+            },
+            "Returned (Go and Back)": {
+                "en": "The order was shipped, and another order was created for its return.",
+                "ar": "الاوردر تم شحنه و تم عمل اوردر اخر لاسترجاعه"
+            },
+            "Returned (Customer)": {
+                "en": "The customer returned the order, and it was not shipped again.",
+                "ar": "العميل رجع الاوردر ولم يتم شحنه مره اخرى"
+            },
+            "Returned (Quality)": {
+                "en": "The customer returned the order due to quality issues, and it was not shipped again.",
+                "ar": "العميل رجع الاوردر بسبب الخامه ولم يتم شحنه مره اخرى"
+            },
+            "Returned (Size)": {
+                "en": "The customer returned the order due to size issues, and it was not shipped again.",
+                "ar": "العميل رجع الاوردر بسبب المقاس و لم يتم شحنه مره اخرى"
+            },
+            "Returned (Team)": {
+                "en": "The customer received the order with an issue caused by the team and refused to reorder.",
+                "ar": "العميل وصله الاوردر فيه حاجه غلط بسبب خطأ من التييم ورفض يطلب تاني."
+            },
+            "Returned (Delivery Man)": {
+                "en": "The order was returned due to the delivery man.",
+                "ar": "الاوردر رجع بسبب مندوب الشحن"
+            },
+            "Problems (Exchanged)": {
+                "en": "The order was exchanged.",
+                "ar": "الاوردر تم استبداله"
+            },
+            "Problems (Exchanged - Size)": {
+                "en": "The order was exchanged due to size issues.",
+                "ar": "الاوردر تم استبداله بسبب المقاس"
+            },
+            "Problems (Exchanged - Quality)": {
+                "en": "The order was exchanged due to quality issues.",
+                "ar": "الاوردر تم استبداله بسبب الخامه"
+            },
+            "Problems (Team)": {
+                "en": "There was an issue with the order due to the team.",
+                "ar": "الاوردر فيه مشكله بسبب التييم"
+            },
+            "Problems (Delivery Man)": {
+                "en": "There was an issue with the order due to the delivery man.",
+                "ar": "الاوردر فيه مشكله بسبب مندوب الشحن"
+            }
+        }
+        
+        for status, descriptions in order_statuses.items():
+            with st.expander(status):
+                st.write(f"{descriptions['en']}")
+                st.write(f"{descriptions['ar']}")
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
