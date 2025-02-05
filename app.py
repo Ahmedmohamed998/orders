@@ -258,20 +258,20 @@ def orders_management_page():
             SELECT 
                 COUNT(o.order_number) AS total_orders, 
                 COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_price
+                COALESCE(SUM(o.shipping_price), 0)AS total_shipping_pricee
             FROM returned_orders o;
           """
         cursor.execute(total_shipping_returned_query)
-        total_returned_orders,total_shipping_returned_price = cursor.fetchone()
-        total_shipping_returned_price=total_shipping_returned_price
+        total_returned_orders,total_shipping_returned_price,total_shipping_returned_pricee = cursor.fetchone()
         total_shipping_problems_query = """
             SELECT 
                 COUNT(o.order_number) AS total_orders, 
                 COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_price
+                COALESCE(SUM(o.shipping_price), 0) AS total_shipping_pricee
             FROM shipping o;
           """
         cursor.execute(total_shipping_problems_query)
-        total_problem_orders,total_shipping_problem_price = cursor.fetchone()
-        total_shipping_problem_price=total_shipping_problem_price
+        total_problem_orders,total_shipping_problem_price,total_shipping_problem_pricee = cursor.fetchone()
         total_shipping_completed_query = """
             SELECT 
                 COALESCE(SUM(o.shipping_price), 0) AS total_shipping_price
@@ -279,9 +279,9 @@ def orders_management_page():
           """
         cursor.execute(total_shipping_completed_query)
         total_shipping_completed_price = cursor.fetchone()[0]
-        total__profit = total_returned - total_shipping_returned_price
+        total__profit = total_returned - total_shipping_returned_pricee
         total_can_be_gained=total_cancelled+total__profit
-        total_profit=total_prices-(total_shipping_problem_price+total_shipping_returned_price+total_shipping_completed_price)
+        total_profit=total_prices-(total_shipping_problem_price+total_shipping_returned_pricee+total_shipping_problem_pricee)
         total_shipping_price=total_shipping_problem_price+total_shipping_returned_price+total_shipping_completed_price
         completed_query = """
             SELECT 
@@ -562,41 +562,6 @@ def orders_management_page():
         )
 
         st.plotly_chart(fig,use_container_width=True)
-    elif page=="Customers":
-        st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>🧑Customers</h1>", unsafe_allow_html=True)
-        st.markdown("") 
-        st.markdown("")   
-        st.markdown("")   
-        st.markdown("")   
-        st.header("Customers")
-        st.markdown("")  
-        conn = create_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM customers")
-        customers = cursor.fetchall()
-        conn.close()
-        
-        columns = ["Customer Name", "Customer Phone 1", "Customer Phone 2", "Email","Order Id"] 
-        customers_df = pd.DataFrame(customers, columns=columns)
-        customers_df.drop("Order Id",axis=1,inplace=True)
-        st.dataframe(customers_df) 
-        csv_data = customers_df.to_csv(index=False)
-        st.download_button(
-                    label="Download as CSV",
-                    data=csv_data,
-                    file_name="Customers.csv",
-                    mime="text/csv"
-                )     
-        excel_data = io.BytesIO()
-        with pd.ExcelWriter(excel_data, engine="xlsxwriter") as writer:
-            customers_df.to_excel(writer, index=False, sheet_name="Customers")
-        excel_data.seek(0)
-        st.download_button(
-                    label="Download as Excel",
-                    data=excel_data,
-                    file_name="Customers.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
     elif page == "Activity Logs":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>🕑Activity Logs</h1>", unsafe_allow_html=True)   
         st.markdown("") 
