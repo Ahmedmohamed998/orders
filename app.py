@@ -281,7 +281,7 @@ def orders_management_page():
         total_shipping_completed_price = cursor.fetchone()[0]
         total__profit = total_returned - total_shipping_returned_pricee
         total_can_be_gained=total_cancelled+total__profit
-        total_profit=total_prices-(total_shipping_problem_price+total_shipping_returned_pricee+total_shipping_problem_pricee)
+        total_profit=total_prices-(total_shipping_problem_pricee+total_shipping_returned_pricee+total_shipping_completed_price)
         total_shipping_price=total_shipping_problem_price+total_shipping_returned_price+total_shipping_completed_price
         completed_query = """
             SELECT 
