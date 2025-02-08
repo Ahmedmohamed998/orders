@@ -1052,7 +1052,6 @@ def orders_management_page():
 
                             conn.commit()
                             del st.session_state.modified_products
-                            del st.session_state.new_products
                             st.success("Order updated successfully!")
                             log_action(st.session_state.username,"Update Completed Order",f"Order ID: {search_order_number}, Customer: {new_name}")
                         st.subheader("Remove Order")
