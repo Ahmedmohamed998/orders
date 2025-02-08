@@ -1042,7 +1042,7 @@ def orders_management_page():
                                             st.rerun()
 
                         if st.button("Update Order"):
-                            updated_products = ", ".join[f"{item['Type']}:{item['Count']}" for item in (st.session_state.modified_products + st.session_state.new_products)])
+                            updated_products = ", ".join([f"{item['Type']}:{item['Count']}" for item in (st.session_state.modified_products + st.session_state.new_products)])
                             cursor.execute(
                                 """
                                 UPDATE customers
