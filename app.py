@@ -976,13 +976,13 @@ def orders_management_page():
                     if order_details:
                         st.write("Order Details:")
                         st.table([order_details])
-                        if order_details[12]:  # Checks if it's not empty or None
+                        if order_details[12]:  
                           products_list = [
                             {"Type": p.split(":")[0], "Count": int(p.split(":")[1])}
                             for p in order_details[12].split(", ") if ":" in p
                           ]
                         else:
-                          products_list = []  # Set an empty list when there are no products
+                          products_list = [] 
 
                         st.subheader("Update Order")
                         new_name=st.text_input("Customer Name",value=order_details[1])
@@ -1001,7 +1001,7 @@ def orders_management_page():
                            for i in range(num_products):
                              product_type = st.selectbox(f"Enter product type for item {i+1}:",products,key=f"type_{i}")
                              count = custom_number_input(f"Enter count for {product_type}:", min_value=0, step=1, key=f"count_{i}")
-                             if product_type:  # Ensure input is not empty
+                             if product_type:
                                fake_products.append({"Type": product_type, "Count": count})
                            products_list = fake_products
                         if "modified_products" not in st.session_state:
@@ -1020,9 +1020,28 @@ def orders_management_page():
                                 if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
                                     st.session_state.modified_products.pop(i)
                                     st.rerun()
-
+                        if "new_products" not in st.session_state:
+                            st.session_state.new_products = []
+                        if st.button("Add More Products"):
+                            st.session_state.new_products.append({"Type": "", "Count": 1})
+                        for i, product in enumerate(st.session_state.new_products):
+                            col1, col2, col3 = st.columns([1, 1, 1])
+                            with col1:
+                                st.session_state.new_products[i]["Type"] = st.selectbox(
+                                    f"New Type {i+1}", products, key=f"new_product_type_{i}"
+                                )
+                            with col2:
+                                st.session_state.new_products[i]["Count"] = custom_number_input(
+                                    f"New Count {i+1}", min_value=0, step=1, key=f"new_product_count_{i}", value=product["Count"]
+                                )
+                            with col3:
+                                if st.button(f"Remove New Product {i+1}", key=f"remove_new_product_{i}"):
+                                    st.session_state.new_products.pop(i)
+                                    st.rerun()
                         if st.button("Update Order"):
-                            updated_products = ", ".join([f"{item['Type']}:{item['Count']}" for item in (st.session_state.modified_products)])
+                            updated_products = ", ".join(
+                                [f"{item['Type']}:{item['Count']}" for item in (st.session_state.modified_products + st.session_state.new_products)]
+                            )
                             cursor.execute(
                                 """
                                 UPDATE customers
@@ -1045,13 +1064,14 @@ def orders_management_page():
                                 """,
                                 (
                                     new_ship_company, new_region, new_order_price, new_days_to_receive,
-                                    sum(item["Count"] for item in st.session_state.modified_products),
+                                    sum(item["Count"] for item in (st.session_state.modified_products + st.session_state.new_products)),
                                     new_shipping_price, updated_products, new_date, search_order_number
                                 )
                             )
 
                             conn.commit()
                             del st.session_state.modified_products
+                            del st.session_state.new_products
                             st.success("Order updated successfully!")
                             log_action(st.session_state.username,"Update Completed Order",f"Order ID: {search_order_number}, Customer: {new_name}")
                         st.subheader("Remove Order")
@@ -2140,6 +2160,7 @@ def orders_management_page():
                         new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[5]))
                         new_cancel_reason=st.selectbox("Reason",reasons_1)
                         new_cancel_price=custom_number_input("Order Price",value=order_details[8])
+                        new_date=st.date_input("Order Date",value=order_details[9])
                         if not products_list:
                            num_products = custom_number_input("Enter the number of products:", min_value=0,step=1)
                            fake_products = []
@@ -2165,11 +2186,31 @@ def orders_management_page():
                                 if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
                                     st.session_state.re_modified_products.pop(i)
                                     st.rerun()
-                        new_date=st.date_input("Order Date",value=order_details[9])
+                        if "re_new_products" not in st.session_state:
+                            st.session_state.re_new_products = []
+
+                        if st.button("Add More Products"):
+                            st.session_state.re_new_products.append({"Type": "", "Count": 1})
+
+                        for i, product in enumerate(st.session_state.re_new_products):
+                            col1, col2, col3 = st.columns([1, 1, 1])
+                            with col1:
+                                st.session_state.re_new_products[i]["Type"] = st.selectbox(
+                                    f"New Type {i+1}", products, key=f"new_product_type_{i}"
+                                )
+                            with col2:
+                                st.session_state.re_new_products[i]["Count"] = custom_number_input(
+                                    f"New Count {i+1}", min_value=0, step=1, key=f"new_product_count_{i}", value=product["Count"]
+                                )
+                            with col3:
+                                if st.button(f"Remove New Product {i+1}", key=f"remove_new_product_{i}"):
+                                    st.session_state.re_new_products.pop(i)
+                                    st.rerun()
+
                         if st.button("Update Order"):
                                 updated_products = ", ".join(
-                                    [f"{item['Type']}:{item['Count']}" for item in st.session_state.re_modified_products]
-                                )
+                                        [f"{item['Type']}:{item['Count']}" for item in (st.session_state.re_modified_products + st.session_state.re_new_products)]
+                                    )
                                 cursor.execute(
                                     """
                                     UPDATE customers
@@ -2189,10 +2230,12 @@ def orders_management_page():
                                     SET region = %s,reason=%s,hoodies=%s,order_price=%s,order_date=%s,products=%s
                                     WHERE order_number = %s
                                     """,
-                                    (new_region, new_cancel_reason,sum(item["Count"] for item in st.session_state.re_modified_products), new_cancel_price, new_date, updated_products, search_order_number)
+                                    (new_region, new_cancel_reason,sum(item["Count"] for item in (st.session_state.re_modified_products + st.session_state.re_new_products)), new_cancel_price, new_date, updated_products, search_order_number)
                                 )
 
                                 conn.commit()
+                                del st.session_state.re_modified_products
+                                del st.session_state.re_new_products
                                 st.success("Order updated successfully!")
                                 log_action(st.session_state.username, "Update Cancelled Order", f"Order ID: {search_order_number}, Customer: {new_name}")
 
@@ -2886,7 +2929,7 @@ def orders_management_page():
                     if order_details:
                         st.write("Order Details:")
                         st.table([order_details])
-                        if order_details[13]:  # Checks if it's not empty or None
+                        if order_details[13]:
                           products_list = [
                             {"Type": p.split(":")[0], "Count": int(p.split(":")[1])}
                             for p in order_details[13].split(", ") if ":" in p
@@ -2905,6 +2948,7 @@ def orders_management_page():
                         new_price=custom_number_input("Order Price",value=order_details[9])
                         new_shipping_price=custom_number_input("Shipping Price",value=order_details[10])
                         new_customer_shipping_price=custom_number_input("Shipping price paid by customer",value=order_details[14])
+                        new_date=st.date_input("Order Date",value=order_details[11])
                         if not products_list:
                            num_products = custom_number_input("Enter the number of products:", min_value=0,step=1)
                            fake_products = []
@@ -2914,26 +2958,45 @@ def orders_management_page():
                              if product_type:  
                                fake_products.append({"Type": product_type, "Count": count})
                            products_list = fake_products
-                        if "re_modified_products" not in st.session_state:
-                            st.session_state.re_modified_products = products_list
-                        for i, product in enumerate(st.session_state.re_modified_products):
+                        if "ca_modified_products" not in st.session_state:
+                            st.session_state.ca_modified_products = products_list
+                        for i, product in enumerate(st.session_state.ca_modified_products):
                             col1, col2, col3 = st.columns([1, 1, 1])
                             with col1:
-                                st.session_state.re_modified_products[i]["Type"] = st.selectbox(
+                                st.session_state.ca_modified_products[i]["Type"] = st.selectbox(
                                     f"Type {i+1}", products, key=f"product_type_{i}", index=products.index(product["Type"])
                                 )
                             with col2:
-                                st.session_state.re_modified_products[i]["Count"] = custom_number_input(
+                                st.session_state.ca_modified_products[i]["Count"] = custom_number_input(
                                     f"Count {i+1}", min_value=0, step=1, key=f"product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
-                                    st.session_state.re_modified_products.pop(i)
+                                    st.session_state.ca_modified_products.pop(i)
                                     st.rerun()
-                        new_date=st.date_input("Order Date",value=order_details[11])
+                        if "ca_new_products" not in st.session_state:
+                            st.session_state.ca_new_products = []
+
+                        if st.button("Add More Products"):
+                            st.session_state.ca_new_products.append({"Type": "", "Count": 1})
+
+                        for i, product in enumerate(st.session_state.ca_new_products):
+                            col1, col2, col3 = st.columns([1, 1, 1])
+                            with col1:
+                                st.session_state.ca_new_products[i]["Type"] = st.selectbox(
+                                    f"New Type {i+1}", products, key=f"new_product_type_{i}"
+                                )
+                            with col2:
+                                st.session_state.ca_new_products[i]["Count"] = custom_number_input(
+                                    f"New Count {i+1}", min_value=0, step=1, key=f"new_product_count_{i}", value=product["Count"]
+                                )
+                            with col3:
+                                if st.button(f"Remove New Product {i+1}", key=f"remove_new_product_{i}"):
+                                    st.session_state.ca_new_products.pop(i)
+                                    st.rerun()
                         if st.button("Update Order"):
                                 updated_products = ", ".join(
-                                    [f"{item['Type']}:{item['Count']}" for item in st.session_state.re_modified_products]
+                                    [f"{item['Type']}:{item['Count']}" for item in (st.session_state.ca_modified_products + st.session_state.ca_new_products)]
                                 )
                                 cursor.execute(
                                     """
@@ -2954,10 +3017,11 @@ def orders_management_page():
                                     SET ship_company = %s, region = %s,reason=%s,hoodies=%s,order_price=%s,shipping_price=%s,order_date=%s,status=%s,products=%s,customer_shipping_price=%s
                                     WHERE order_number = %s
                                     """,
-                                    (new_ship_company, new_region, new_reason, sum(item["Count"] for item in st.session_state.re_modified_products), new_price, new_shipping_price, new_date, new_status,updated_products, new_customer_shipping_price, search_order_number)
+                                    (new_ship_company, new_region, new_reason,sum(item["Count"] for item in (st.session_state.ca_modified_products + st.session_state.ca_new_products)), new_price, new_shipping_price, new_date, new_status,updated_products, new_customer_shipping_price, search_order_number)
                                 )
                                 conn.commit()
-                                del st.session_state.re_modified_products
+                                del st.session_state.ca_modified_products
+                                del st.session_state.ca_new_products
                                 st.success("Order updated successfully!")
                                 log_action(st.session_state.username, "Update Returned Order", f"Order ID: {search_order_number}, Customer: {new_name}")
 
@@ -3860,6 +3924,12 @@ def orders_management_page():
                     new_ship_company = st.text_input("Shipping Company", value=order_details[5])
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
                     new_status = st.selectbox("Status",["Delivery Man","Exchanged","Team"])
+                    if new_status == "Delivery Man":
+                        new_problem_reason = "Delivery Man"
+                    elif new_status == "Team":
+                        new_problem_reason="Team"
+                    elif new_status =="Exchanged":
+                        new_problem_reason=st.selectbox("Reason",["Size","Quality"])
                     new_price=custom_number_input("Shipping Price",value=order_details[8])
                     new_customer_shipping_price=custom_number_input("Shipping price paid by customer",value=order_details[12])
                     if "sh_modified_products" not in st.session_state:
@@ -3878,17 +3948,31 @@ def orders_management_page():
                                 if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
                                     st.session_state.sh_modified_products.pop(i)
                                     st.rerun()
+                    if "sh_new_products" not in st.session_state:
+                        st.session_state.sh_new_products = []
 
-                    if new_status == "Delivery Man":
-                        new_problem_reason = "Delivery Man"
-                    elif new_status == "Team":
-                        new_problem_reason="Team"
-                    elif new_status =="Exchanged":
-                        new_problem_reason=st.selectbox("Reason",["Size","Quality"])
+                    if st.button("Add More Products"):
+                        st.session_state.sh_new_products.append({"Type": "", "Count": 1})
+
+                    for i, product in enumerate(st.session_state.sh_new_products):
+                        col1, col2, col3 = st.columns([1, 1, 1])
+                        with col1:
+                            st.session_state.sh_new_products[i]["Type"] = st.selectbox(
+                                f"New Type {i+1}", products, key=f"new_product_type_{i}"
+                            )
+                        with col2:
+                            st.session_state.sh_new_products[i]["Count"] = custom_number_input(
+                                f"New Count {i+1}", min_value=0, step=1, key=f"new_product_count_{i}", value=product["Count"]
+                            )
+                        with col3:
+                            if st.button(f"Remove New Product {i+1}", key=f"remove_new_product_{i}"):
+                                st.session_state.sh_new_products.pop(i)
+                                st.rerun()
+
                     if st.button("Update Order"):
                                 updated_products = ", ".join(
-                                [f"{item['Type']}:{item['Count']}" for item in st.session_state.sh_modified_products]
-                                  )
+                                    [f"{item['Type']}:{item['Count']}" for item in (st.session_state.sh_modified_products + st.session_state.sh_new_products)]
+                                )
                                 cursor.execute(
                                     """
                                     UPDATE customers
@@ -3908,12 +3992,13 @@ def orders_management_page():
                                     SET ship_company = %s, region = %s,status=%s,shipping_price=%s,hoodies=%s,reason=%s,products=%s,customer_shipping_price=%s
                                     WHERE order_number = %s
                                     """,
-                                    (new_ship_company, new_region, new_status,new_price,sum(item["Count"] for item in st.session_state.sh_modified_products), new_problem_reason,updated_products, new_customer_shipping_price, search_order_number)
+                                    (new_ship_company, new_region, new_status,new_price,sum(item["Count"] for item in (st.session_state.sh_modified_products + st.session_state.sh_new_products)), new_problem_reason,updated_products, new_customer_shipping_price, search_order_number)
                                 )
 
 
                                 conn.commit()
                                 del st.session_state.sh_modified_products
+                                del st.session_state.sh_new_products
                                 st.success("Order updated successfully!")
                                 log_action(st.session_state.username, "Update Shipping Problem", f"Order ID: {search_order_number}, Customer: {new_name}")
 
