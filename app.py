@@ -1215,9 +1215,9 @@ def orders_management_page():
                     customer_name, customer_phone_1, email, order_numbers, date, order_count, total_price, total_shipping, product_details = row
                     customer_products = {}
             
-                    if product_details:  # Ensure product_details is not None or empty
+                    if product_details: 
                         for product in product_details.split(', '):
-                            if ':' not in product:  # Skip invalid entries
+                            if ':' not in product: 
                                 print(f"Skipping invalid product entry: {product}")
                                 continue
                             try:
