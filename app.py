@@ -684,7 +684,7 @@ def orders_management_page():
                         type_of_product = st.selectbox(f"Type {i+1}", products, key=f"type_{i}")
                     with col2:
                         count_of_product = custom_number_input(
-                            f"Count {i+1}", min_value=0, step=1, key=f"count_{i}"
+                            f"Count {i+1}", min_value=1, step=1, key=f"count_{i}"
                         )
 
                     if len(st.session_state.order_products) <= i:
@@ -1000,7 +1000,7 @@ def orders_management_page():
                            fake_products = []
                            for i in range(num_products):
                              product_type = st.selectbox(f"Enter product type for item {i+1}:",products,key=f"type_{i}")
-                             count = custom_number_input(f"Enter count for {product_type}:", min_value=0, step=1, key=f"count_{i}")
+                             count = custom_number_input(f"Enter count for {product_type}:", min_value=1, step=1, key=f"count_{i}")
                              if product_type:
                                fake_products.append({"Type": product_type, "Count": count})
                            products_list = fake_products
@@ -1014,7 +1014,7 @@ def orders_management_page():
                                 )
                             with col2:
                                 st.session_state.modified_products[i]["Count"] = custom_number_input(
-                                    f"Count {i+1}", min_value=0, step=1, key=f"product_count_{i}", value=product["Count"]
+                                    f"Count {i+1}", min_value=1, step=1, key=f"product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
@@ -1032,7 +1032,7 @@ def orders_management_page():
                                 )
                             with col2:
                                 st.session_state.new_products[i]["Count"] = custom_number_input(
-                                    f"New Count {i+1}", min_value=0, step=1, key=f"new_product_count_{i}", value=product["Count"]
+                                    f"New Count {i+1}", min_value=1, step=1, key=f"new_product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove New Product {i+1}", key=f"remove_new_product_{i}"):
@@ -1893,7 +1893,7 @@ def orders_management_page():
                         type_of_product = st.selectbox(f"Type {i+1}", products, key=f"type_{i}")
                     with col2:
                         count_of_product = custom_number_input(
-                            f"Count {i+1}", min_value=0, step=1, key=f"count_{i}"
+                            f"Count {i+1}", min_value=1, step=1, key=f"count_{i}"
                         )
 
                     if len(st.session_state.order_products) <= i:
@@ -2173,7 +2173,7 @@ def orders_management_page():
                            fake_products = []
                            for i in range(num_products):
                              product_type = st.selectbox(f"Enter product type for item {i+1}:",products,key=f"type_{i}")
-                             count = custom_number_input(f"Enter count for {product_type}:", min_value=0, step=1, key=f"count_{i}")
+                             count = custom_number_input(f"Enter count for {product_type}:", min_value=1, step=1, key=f"count_{i}")
                              if product_type:  
                                fake_products.append({"Type": product_type, "Count": count})
                            products_list = fake_products
@@ -2187,7 +2187,7 @@ def orders_management_page():
                                 )
                             with col2:
                                 st.session_state.re_modified_products[i]["Count"] = custom_number_input(
-                                    f"Count {i+1}", min_value=0, step=1, key=f"product_count_{i}", value=product["Count"]
+                                    f"Count {i+1}", min_value=1, step=1, key=f"product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
@@ -2207,7 +2207,7 @@ def orders_management_page():
                                 )
                             with col2:
                                 st.session_state.re_new_products[i]["Count"] = custom_number_input(
-                                    f"New Count {i+1}", min_value=0, step=1, key=f"new_product_count_{i}", value=product["Count"]
+                                    f"New Count {i+1}", min_value=1, step=1, key=f"new_product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove New Product {i+1}", key=f"remove_new_product_{i}"):
@@ -2644,7 +2644,7 @@ def orders_management_page():
                     type_of_product = st.selectbox(f"Type {i+1}", products, key=f"type_{i}")
                 with col2:
                     count_of_product = custom_number_input(
-                        f"Count {i+1}", min_value=0, step=1, key=f"count_{i}"
+                        f"Count {i+1}", min_value=1, step=1, key=f"count_{i}"
                     )
 
                 if len(st.session_state.re_order_products) <= i:
@@ -2961,7 +2961,7 @@ def orders_management_page():
                            fake_products = []
                            for i in range(num_products):
                              product_type = st.selectbox(f"Enter product type for item {i+1}:",products,key=f"type_{i}")
-                             count = custom_number_input(f"Enter count for {product_type}:", min_value=0, step=1, key=f"count_{i}")
+                             count = custom_number_input(f"Enter count for {product_type}:", min_value=1, step=1, key=f"count_{i}")
                              if product_type:  
                                fake_products.append({"Type": product_type, "Count": count})
                            products_list = fake_products
@@ -2975,7 +2975,7 @@ def orders_management_page():
                                 )
                             with col2:
                                 st.session_state.ca_modified_products[i]["Count"] = custom_number_input(
-                                    f"Count {i+1}", min_value=0, step=1, key=f"product_count_{i}", value=product["Count"]
+                                    f"Count {i+1}", min_value=1, step=1, key=f"product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
@@ -3658,7 +3658,7 @@ def orders_management_page():
                     type_of_product = st.selectbox(f"Type {i+1}", products, key=f"type_{i}")
                 with col2:
                     count_of_product = custom_number_input(
-                        f"Count {i+1}", min_value=0, step=1, key=f"count_{i}"
+                        f"Count {i+1}", min_value=1, step=1, key=f"count_{i}"
                     )
 
                 if len(st.session_state.sh_order_products) <= i:
@@ -3949,7 +3949,7 @@ def orders_management_page():
                                 )
                             with col2:
                                 st.session_state.sh_modified_products[i]["Count"] = custom_number_input(
-                                    f"Count {i+1}", min_value=0, step=1, key=f"product_count_{i}", value=product["Count"]
+                                    f"Count {i+1}", min_value=1, step=1, key=f"product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
@@ -3969,7 +3969,7 @@ def orders_management_page():
                             )
                         with col2:
                             st.session_state.sh_new_products[i]["Count"] = custom_number_input(
-                                f"New Count {i+1}", min_value=0, step=1, key=f"new_product_count_{i}", value=product["Count"]
+                                f"New Count {i+1}", min_value=1, step=1, key=f"new_product_count_{i}", value=product["Count"]
                             )
                         with col3:
                             if st.button(f"Remove New Product {i+1}", key=f"remove_new_product_{i}"):
