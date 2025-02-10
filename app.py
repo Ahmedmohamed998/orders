@@ -1210,18 +1210,25 @@ def orders_management_page():
                 data = []
                 total_product_count = 0
                 product_summary = {}
-
+            
                 for row in consolidated_orders:
-                    customer_name, customer_phone_1, email, order_numbers,date, order_count, total_price, total_shipping, product_details = row
+                    customer_name, customer_phone_1, email, order_numbers, date, order_count, total_price, total_shipping, product_details = row
                     customer_products = {}
+            
+                    if product_details:  # Ensure product_details is not None or empty
+                        for product in product_details.split(', '):
+                            if ':' not in product:  # Skip invalid entries
+                                print(f"Skipping invalid product entry: {product}")
+                                continue
+                            try:
+                                product_type, count = product.rsplit(':', 1)
+                                count = int(count)
+                                customer_products[product_type] = customer_products.get(product_type, 0) + count
+                                product_summary[product_type] = product_summary.get(product_type, 0) + count
+                                total_product_count += count
+                            except ValueError:
+                                continue
 
-                    if product_details:  
-                        for product in product_details.split(', '): 
-                            product_type, count = product.rsplit(':', 1) 
-                            count = int(count)
-                            customer_products[product_type] = customer_products.get(product_type, 0) + count
-                            product_summary[product_type] = product_summary.get(product_type, 0) + count
-                            total_product_count += count
 
                     data.append({
                         "Customer Name": customer_name,
