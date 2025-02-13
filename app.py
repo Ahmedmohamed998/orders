@@ -147,7 +147,7 @@ def season_selection_page_1():
             st.session_state.selected_season = "Summer"
             st.rerun()    
 def orders_management_page():
-    if st.session_state.selected_season is None and  st.session_state.username=="walid" or  st.session_state.username=="ahmed":
+    if st.session_state.selected_season is None and  (st.session_state.username=="walid" or  st.session_state.username=="ahmed"):
         season_selection_page()
         return
     elif st.session_state.selected_season is None:
@@ -179,7 +179,7 @@ def orders_management_page():
 
         return numeric_value
         
-    if st.session_state.username=="walid" or st.session_state.username=="ahmed" and  st.session_state.selected_season== "Winter":
+    if (st.session_state.username=="walid" or st.session_state.username=="ahmed") and  st.session_state.selected_season== "Winter":
         with st.sidebar:
             page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Problems','Customers','Analysis','Information','Activity Logs'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people','graph-up','exclamation-circle','clock'], menu_icon="list", default_index=0)
             if st.button("Logout"):
