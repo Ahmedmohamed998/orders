@@ -4509,6 +4509,10 @@ def orders_management_page():
                 "en": "There was an issue with the order due to the delivery man.",
                 "ar": "الاوردر فيه مشكله بسبب مندوب الشحن"
             }
+            "Problems (Customer)": {
+                "en": "The order is complete, but there is a problem that happened because of the customer.",
+                "ar": "الاوردر اكتمل بس فيه مشكله حصلت بسبب العميل"
+            }
         }
         
         for status, descriptions in order_statuses.items():
