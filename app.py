@@ -1092,7 +1092,9 @@ def orders_management_page():
                                     st.error("Incorrect password. Order deletion canceled.")
                     else:
                         st.write("No order found with the given Order Number.")
-                    
+                    if selected_3=="Multiple Orders":
+                            del st.session_state.modified_products
+                            del st.session_state.new_products
                     conn.close()
         elif selected_3 == "Multiple Orders":
             sort_by = st.selectbox("Sort by", ["Order Code", "Total Price"], key="sort_by_selectbox")
