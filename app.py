@@ -115,7 +115,7 @@ def season_selection_page():
         new_season=st.text_input("New Season Name")
         st.button("Add Season")
     with col2:
-        st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: 50px; '>☀️ Summer Season</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: 50px; '>🌳 Spring Season</h1>", unsafe_allow_html=True)
         st.markdown("")
         if st.button("Select Summer", key="summer", use_container_width=True):
             st.session_state.selected_season = "Summer"
@@ -141,7 +141,7 @@ def season_selection_page_1():
             st.rerun()
         
     with col2:
-        st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: 50px; '>☀️ Summer Season</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: 50px; '>🌳 Spring Season</h1>", unsafe_allow_html=True)
         st.markdown("")
         if st.button("Select Summer", key="summer", use_container_width=True):
             st.session_state.selected_season = "Summer"
