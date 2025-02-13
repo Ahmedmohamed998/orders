@@ -3631,12 +3631,14 @@ def orders_management_page():
             ship_company = st.text_input("Shipping Company")
             region = st.selectbox("Region", egypt_governorates)
             order_number = st.text_input("Order Code")
-            status = st.selectbox("Status", ["Exchanged", "Delivery Man", "Team"])
+            status = st.selectbox("Status", ["Exchanged", "Delivery Man", "Team","Customer"])
 
             if status == "Delivery Man":
                 reason = "Delivery Man"
             elif status == "Team":
                 reason="Team"
+            elif status== "Customer":
+                reason="Customer"
             elif status =="Exchanged":
                 reason=st.selectbox("Reason",["Size","Quality"])
 
@@ -3930,11 +3932,13 @@ def orders_management_page():
                     new_email=st.text_input("Email",value=order_details[4])
                     new_ship_company = st.text_input("Shipping Company", value=order_details[5])
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
-                    new_status = st.selectbox("Status",["Delivery Man","Exchanged","Team"])
+                    new_status = st.selectbox("Status",["Delivery Man","Exchanged","Team","Customer"])
                     if new_status == "Delivery Man":
                         new_problem_reason = "Delivery Man"
                     elif new_status == "Team":
                         new_problem_reason="Team"
+                    elif new_status == "Customer":
+                        new_problem_reason="Customer"
                     elif new_status =="Exchanged":
                         new_problem_reason=st.selectbox("Reason",["Size","Quality"])
                     new_price=custom_number_input("Shipping Price",value=order_details[8])
@@ -4026,7 +4030,6 @@ def orders_management_page():
                                 st.error("Incorrect password. Order deletion canceled.")
                 else:
                     st.write("No order found with the given Order Number.")
-                
                 conn.close()
         elif selected=='Delete Orders':
             query = """
