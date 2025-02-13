@@ -62,6 +62,7 @@ users = {
     "walid": "12345678",
     "shams": "91011121",
     "metoo": "14151617",
+    "ahmed":"998",
 }
 
 def login_page():
@@ -178,7 +179,7 @@ def orders_management_page():
 
         return numeric_value
         
-    if st.session_state.username=="walid" and  st.session_state.selected_season== "Winter":
+    if st.session_state.username=="walid" or st.session_state.username=="ahmed" and  st.session_state.selected_season== "Winter":
         with st.sidebar:
             page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Problems','Customers','Analysis','Information','Activity Logs'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people','graph-up','exclamation-circle','clock'], menu_icon="list", default_index=0)
             if st.button("Logout"):
