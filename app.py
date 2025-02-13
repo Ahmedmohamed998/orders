@@ -153,7 +153,7 @@ def orders_management_page():
     elif st.session_state.selected_season is None:
         season_selection_page_1()
         return
-    if st.session_state.selected_season == "Summer":
+    if st.session_state.selected_season == "Spring":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: 200px;'>Coming Soon...</h1>", unsafe_allow_html=True)
         st.markdown("")
         st.markdown("")
