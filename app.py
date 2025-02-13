@@ -147,7 +147,7 @@ def season_selection_page_1():
             st.session_state.selected_season = "Summer"
             st.rerun()    
 def orders_management_page():
-    if st.session_state.selected_season is None and  st.session_state.username=="walid":
+    if st.session_state.selected_season is None and  st.session_state.username=="walid" or  st.session_state.username=="ahmed":
         season_selection_page()
         return
     elif st.session_state.selected_season is None:
@@ -207,6 +207,7 @@ def orders_management_page():
     Status=['Returned','Exchanged','Reshipping','Team']
     products=['Hoodie','Quarter Zipper','Acid Washed Hoodie']
     Options= ["No", "Yes"]
+    company=['SHIPBLU','BOSTA','WALID','SALAH']
     if page=='Analysis':
         def metric_card_with_icon(title, content, description,info):
                 st.markdown(
@@ -662,7 +663,7 @@ def orders_management_page():
                             f"<div style='color: orange;'>Corrected email (Invalid Format): {corrected_email}</div>",
                             unsafe_allow_html=True,
                         )
-                ship_company = st.text_input("Shipping Company")
+                ship_company = st.selectbox("Shipping Company",company)
                 region = st.selectbox("Region",egypt_governorates)
                 order_number = st.text_input("Order Code")
                 shipping_price = custom_number_input("Shipping Price", min_value=0, step=1)
@@ -990,7 +991,7 @@ def orders_management_page():
                         new_phone1=st.text_input("Customer Phone 1",value=order_details[2])
                         new_phone2=st.text_input("Customer Phone 1",value=order_details[3])
                         new_email=st.text_input("Email",value=order_details[4])
-                        new_ship_company = st.text_input("Shipping Company", value=order_details[5])
+                        new_ship_company = st.selectbox("Shipping Company",index=company.index(order_details[5]))
                         new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
                         new_order_price = custom_number_input("Order Price",value=order_details[7],min_value=0,step=1)
                         new_shipping_price = custom_number_input("Shipping Price",value=order_details[10],min_value=0,step=1)
@@ -2621,7 +2622,7 @@ def orders_management_page():
                         f"<div style='color: orange;'>Corrected email (Invalid Format): {corrected_email}</div>",
                         unsafe_allow_html=True,
                     )
-            ship_company = st.text_input("Shipping Company")
+            ship_company = st.selectbox("Shipping Company",company)
             region = st.selectbox("Region", egypt_governorates)
             order_number = st.text_input("Order Code")
             status=st.selectbox("Status",["Go Only","Go And Back"])
@@ -2948,7 +2949,7 @@ def orders_management_page():
                         new_phone1=st.text_input("Customer Phone 1",value=order_details[2])
                         new_phone2=st.text_input("Customer Phone 2",value=order_details[3])
                         new_email=st.text_input("Email",value=order_details[4])
-                        new_ship_company = st.text_input("Shipping Company", value=order_details[5])
+                        new_ship_company = st.selectbox("Shipping Company",index=company.index(order_details[5]))
                         new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
                         new_status=st.selectbox("Status",["Go Only","Go And Back"])
                         new_reason = st.selectbox("Reason",["Customer","Delvirey Man","Quality","Size","Team"])
@@ -3628,7 +3629,7 @@ def orders_management_page():
                         unsafe_allow_html=True,
                     )
 
-            ship_company = st.text_input("Shipping Company")
+            ship_company = st.selectbox("Shipping Company",company)
             region = st.selectbox("Region", egypt_governorates)
             order_number = st.text_input("Order Code")
             status = st.selectbox("Status", ["Exchanged", "Delivery Man", "Team","Customer"])
@@ -3930,7 +3931,7 @@ def orders_management_page():
                     new_phone1=st.text_input("Customer Phone 1",value=order_details[2])
                     new_phone2=st.text_input("Customer Phone 2",value=order_details[3])
                     new_email=st.text_input("Email",value=order_details[4])
-                    new_ship_company = st.text_input("Shipping Company", value=order_details[5])
+                    new_ship_company = st.selectbox("Shipping Company",index=company.index(order_details[5]))
                     new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
                     new_status = st.selectbox("Status",["Delivery Man","Exchanged","Team","Customer"])
                     if new_status == "Delivery Man":
