@@ -586,22 +586,38 @@ def orders_management_page():
         
     elif page == "Completed Orders":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>📦Completed Orders</h1>", unsafe_allow_html=True)
-        selected_3 = option_menu(
-            menu_title=None,
-            options=["Add Order", "Search Orders", "View All Orders", 'Modify Orders',"Multiple Orders","Orders View","Delete Orders","Analysis"],
-            icons=['cart', 'search', "list-task", 'gear','people','eye','trash','graph-up'],
-            menu_icon="cast",
-            default_index=0,
-            orientation="horizontal",
-            styles={
-                'container': {
-                    'width': '100%',
-                    'margin': '30',
-                    'padding': '0',
+        if st.session_state.username=="walid" or st.session_state.username=="ahmed":
+                selected_3 = option_menu(
+                menu_title=None,
+                options=["Add Order", "Search Orders", "View All Orders", "Modify Orders","Multiple Orders","Orders View","Delete Orders","Analysis"],
+                icons=['cart', 'search', "list-task", 'gear','people','eye','trash','graph-up'],
+                menu_icon="cast",
+                default_index=0,
+                orientation="horizontal",
+                styles={
+                    'container': {
+                        'width': '100%',
+                        'margin': '30',
+                        'padding': '0',
+                    }
                 }
-            }
-        )
-
+            )
+        else:
+                selected_3 = option_menu(
+                    menu_title=None,
+                    options=["Add Order", "Search Orders", "View All Orders", "Modify Orders","Multiple Orders","Orders View","Delete Orders"],
+                    icons=['cart', 'search', "list-task", 'gear','people','eye','trash'],
+                    menu_icon="cast",
+                    default_index=0,
+                    orientation="horizontal",
+                    styles={
+                        'container': {
+                            'width': '100%',
+                            'margin': '30',
+                            'padding': '0',
+                        }
+                    }
+                )
         st.markdown("")
         st.markdown("")
         if selected_3=="Add Order":
@@ -686,7 +702,7 @@ def orders_management_page():
                         type_of_product = st.selectbox(f"Type {i+1}", products, key=f"type_{i}")
                     with col2:
                         count_of_product = custom_number_input(
-                            f"Count {i+1}", min_value=1, step=1, key=f"count_{i}"
+                            f"Count {i+1}", min_value=0, step=1, key=f"count_{i}"
                         )
 
                     if len(st.session_state.order_products) <= i:
@@ -876,6 +892,7 @@ def orders_management_page():
                         "Total number of Products":order[9],
                     })
                 df = pd.DataFrame(data)
+                print(df['Shipping Company'].value_counts())
                 st.write("All Orders:")
                 st.dataframe(df)
                 st.write(f"**Total Orders:** {total_orders}")
@@ -1002,7 +1019,7 @@ def orders_management_page():
                            fake_products = []
                            for i in range(num_products):
                              product_type = st.selectbox(f"Enter product type for item {i+1}:",products,key=f"type_{i}")
-                             count = custom_number_input(f"Enter count for {product_type}:", min_value=1, step=1, key=f"count_{i}")
+                             count = custom_number_input(f"Enter count for {product_type}:", min_value=0, step=1, key=f"count_{i}")
                              if product_type:
                                fake_products.append({"Type": product_type, "Count": count})
                            products_list = fake_products
@@ -1016,7 +1033,7 @@ def orders_management_page():
                                 )
                             with col2:
                                 st.session_state.modified_products[i]["Count"] = custom_number_input(
-                                    f"Count {i+1}", min_value=1, step=1, key=f"product_count_{i}", value=product["Count"]
+                                    f"Count {i+1}", min_value=0, step=1, key=f"product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
@@ -1034,7 +1051,7 @@ def orders_management_page():
                                 )
                             with col2:
                                 st.session_state.new_products[i]["Count"] = custom_number_input(
-                                    f"New Count {i+1}", min_value=1, step=1, key=f"new_product_count_{i}", value=product["Count"]
+                                    f"New Count {i+1}", min_value=0, step=1, key=f"new_product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove New Product {i+1}", key=f"remove_new_product_{i}"):
@@ -1093,6 +1110,7 @@ def orders_management_page():
                                     st.error("Incorrect password. Order deletion canceled.")
                     else:
                         st.write("No order found with the given Order Number.")
+                    
                     conn.close()
         elif selected_3 == "Multiple Orders":
             sort_by = st.selectbox("Sort by", ["Order Code", "Total Price"], key="sort_by_selectbox")
@@ -1211,15 +1229,14 @@ def orders_management_page():
                 data = []
                 total_product_count = 0
                 product_summary = {}
-            
+
                 for row in consolidated_orders:
                     customer_name, customer_phone_1, email, order_numbers, date, order_count, total_price, total_shipping, product_details = row
                     customer_products = {}
-            
+
                     if product_details: 
                         for product in product_details.split(', '):
-                            if ':' not in product: 
-                                print(f"Skipping invalid product entry: {product}")
+                            if ':' not in product:
                                 continue
                             try:
                                 product_type, count = product.rsplit(':', 1)
@@ -1229,7 +1246,6 @@ def orders_management_page():
                                 total_product_count += count
                             except ValueError:
                                 continue
-
 
                     data.append({
                         "Customer Name": customer_name,
@@ -1320,11 +1336,11 @@ def orders_management_page():
                 st.write("No orders found.")
 
 
-        elif selected_3=="Delete Orders":
+        elif selected_3 == "Delete Orders":
             query = """
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email, o.ship_company, o.region, o.order_price, o.days_to_receive, 
-                o.hoodies, o.shipping_price,o.order_date
+                o.hoodies, o.shipping_price, o.order_date
             FROM orders o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
@@ -1349,25 +1365,25 @@ def orders_management_page():
                         "Region": order[6],
                         "Order Price": order[7],
                         "Days to Receive": order[8],
-                        "Total Number Of Produts": order[9],
+                        "Total Number Of Products": order[9],
                         "Shipping Price": order[10],
                     }
                     for order in all_orders
                 ]
-                
-                gb = GridOptionsBuilder.from_dataframe(pd.DataFrame(orders_data))
-                gb.configure_selection("multiple", use_checkbox=True) 
+                df = pd.DataFrame(orders_data)
+                gb = GridOptionsBuilder.from_dataframe(df)
+                gb.configure_selection("multiple", use_checkbox=True, header_checkbox=True)
                 gb.configure_column("Order Number", sort="asc")  
                 grid_options = gb.build()
-                
                 grid_response = AgGrid(
-                    pd.DataFrame(orders_data),
-                    gridOptions=grid_options,
-                    update_mode=GridUpdateMode.SELECTION_CHANGED,
-                    height=400,
-                    theme="streamlit",  
+                        df,
+                        gridOptions=grid_options,
+                        update_mode=GridUpdateMode.SELECTION_CHANGED,
+                        height=400,
+                        theme="streamlit",
+                        fit_columns_on_grid_load=True,
+                        key="grid",
                 )
-                
                 selected_rows = grid_response["selected_rows"]
 
                 if selected_rows is None or selected_rows.empty:
@@ -1525,7 +1541,6 @@ def orders_management_page():
                 total_quantity = sum(products_dict.values()) 
                 for product_type, quantity in products_dict.items():
                     shipping_price_for_product = (quantity / total_quantity) * total_shipping_price
-
                     if product_type in product_shipping:
                         product_shipping[product_type] += shipping_price_for_product
                     else:
@@ -1797,22 +1812,38 @@ def orders_management_page():
             st.plotly_chart(fig,use_container_width=True)
     elif page == "Cancelled Orders":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>📦Cancelled Orders</h1>", unsafe_allow_html=True)
-        selected_2 = option_menu(
-            menu_title=None,
-            options=["Add Order", "Search Orders", "View All Orders", "Modify Orders","Delete Orders","Analysis"],
-            icons=['cart', 'search', "list-task", 'gear','trash','graph-up'],
-            menu_icon="cast",
-            default_index=0,
-            orientation="horizontal",
-            styles={
-                'container': {
-                    'width': '100%',
-                    'margin': '30',
-                    'padding': '0',
+        if st.session_state.username=="walid" or st.session_state.username=="ahmed":
+            selected_2 = option_menu(
+                menu_title=None,
+                options=["Add Order", "Search Orders", "View All Orders", "Modify Orders","Delete Orders","Analysis"],
+                icons=['cart', 'search', "list-task", 'gear','trash','graph-up'],
+                menu_icon="cast",
+                default_index=0,
+                orientation="horizontal",
+                styles={
+                    'container': {
+                        'width': '100%',
+                        'margin': '30',
+                        'padding': '0',
+                    }
                 }
-            }
-        )
-
+            )
+        else:
+            selected_2 = option_menu(
+                menu_title=None,
+                options=["Add Order", "Search Orders", "View All Orders", "Modify Orders","Delete Orders"],
+                icons=['cart', 'search', "list-task", 'gear','trash'],
+                menu_icon="cast",
+                default_index=0,
+                orientation="horizontal",
+                styles={
+                    'container': {
+                        'width': '100%',
+                        'margin': '30',
+                        'padding': '0',
+                    }
+                }
+            )
         st.markdown("")
         st.markdown("")
         if selected_2=="Add Order":
@@ -1894,7 +1925,7 @@ def orders_management_page():
                         type_of_product = st.selectbox(f"Type {i+1}", products, key=f"type_{i}")
                     with col2:
                         count_of_product = custom_number_input(
-                            f"Count {i+1}", min_value=1, step=1, key=f"count_{i}"
+                            f"Count {i+1}", min_value=0, step=1, key=f"count_{i}"
                         )
 
                     if len(st.session_state.order_products) <= i:
@@ -2174,7 +2205,7 @@ def orders_management_page():
                            fake_products = []
                            for i in range(num_products):
                              product_type = st.selectbox(f"Enter product type for item {i+1}:",products,key=f"type_{i}")
-                             count = custom_number_input(f"Enter count for {product_type}:", min_value=1, step=1, key=f"count_{i}")
+                             count = custom_number_input(f"Enter count for {product_type}:", min_value=0, step=1, key=f"count_{i}")
                              if product_type:  
                                fake_products.append({"Type": product_type, "Count": count})
                            products_list = fake_products
@@ -2188,7 +2219,7 @@ def orders_management_page():
                                 )
                             with col2:
                                 st.session_state.re_modified_products[i]["Count"] = custom_number_input(
-                                    f"Count {i+1}", min_value=1, step=1, key=f"product_count_{i}", value=product["Count"]
+                                    f"Count {i+1}", min_value=0, step=1, key=f"product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
@@ -2208,7 +2239,7 @@ def orders_management_page():
                                 )
                             with col2:
                                 st.session_state.re_new_products[i]["Count"] = custom_number_input(
-                                    f"New Count {i+1}", min_value=1, step=1, key=f"new_product_count_{i}", value=product["Count"]
+                                    f"New Count {i+1}", min_value=0, step=1, key=f"new_product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove New Product {i+1}", key=f"remove_new_product_{i}"):
@@ -2296,20 +2327,20 @@ def orders_management_page():
                     }
                     for order in all_orders
                 ]
-                
-                gb = GridOptionsBuilder.from_dataframe(pd.DataFrame(orders_data))
-                gb.configure_selection("multiple", use_checkbox=True) 
+                df = pd.DataFrame(orders_data)
+                gb = GridOptionsBuilder.from_dataframe(df)
+                gb.configure_selection("multiple", use_checkbox=True, header_checkbox=True)
                 gb.configure_column("Order Number", sort="asc")  
                 grid_options = gb.build()
-                
                 grid_response = AgGrid(
-                    pd.DataFrame(orders_data),
-                    gridOptions=grid_options,
-                    update_mode=GridUpdateMode.SELECTION_CHANGED,
-                    height=400,
-                    theme="streamlit",  
+                        df,
+                        gridOptions=grid_options,
+                        update_mode=GridUpdateMode.SELECTION_CHANGED,
+                        height=400,
+                        theme="streamlit",
+                        fit_columns_on_grid_load=True,
+                        key="grid",
                 )
-                
                 selected_rows = grid_response["selected_rows"]
 
                 if selected_rows is None or selected_rows.empty:
@@ -2339,10 +2370,9 @@ def orders_management_page():
                                     cursor.execute(delete_query, (orders_tuple,))
                                     conn.commit()
                                     st.success(f"Successfully deleted {len(selected_order_numbers)} orders.")
-                                    log_action(st.session_state.username, "Delete Cancelled Order", f"Order ID: {selected_order_numbers}, Customers: {selected_customers}")
+                                    log_action(st.session_state.username, "Delete Completed Order", f"Order ID: {selected_order_numbers}, Customers: {selected_customers}")
                             except Exception as e:
                                 st.error(f"Error deleting orders: {e}")
-
         elif selected_2=="Analysis":
             col1, col2, col3,col4= st.columns([1, 1, 1,1])
             def metric_card_with_icon(title, content, description,info):
@@ -2545,21 +2575,38 @@ def orders_management_page():
             st.plotly_chart(fig,use_container_width=True)
     elif page == "Returned Orders":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>📦Returned Orders</h1>", unsafe_allow_html=True)
-        selected_1 = option_menu(
-            menu_title=None,
-            options=["Add Order", "Search Orders", "View All Orders", 'Modify Orders','Delete Orders','Analysis'],
-            icons=['cart', 'search', "list-task", 'gear','trash','graph-up'],
-            menu_icon="cast",
-            default_index=0,
-            orientation="horizontal",
-            styles={
-                'container': {
-                    'width': '100%',
-                    'margin': '30',
-                    'padding': '0',
+        if st.session_state.username=="walid" or st.session_state.username=="ahmed":
+            selected_1 = option_menu(
+                menu_title=None,
+                options=["Add Order", "Search Orders", "View All Orders", 'Modify Orders','Delete Orders','Analysis'],
+                icons=['cart', 'search', "list-task", 'gear','trash','graph-up'],
+                menu_icon="cast",
+                default_index=0,
+                orientation="horizontal",
+                styles={
+                    'container': {
+                        'width': '100%',
+                        'margin': '30',
+                        'padding': '0',
+                    }
                 }
-            }
-        )
+            )
+        else:
+            selected_1 = option_menu(
+                menu_title=None,
+                options=["Add Order", "Search Orders", "View All Orders", 'Modify Orders','Delete Orders'],
+                icons=['cart', 'search', "list-task", 'gear','trash'],
+                menu_icon="cast",
+                default_index=0,
+                orientation="horizontal",
+                styles={
+                    'container': {
+                        'width': '100%',
+                        'margin': '30',
+                        'padding': '0',
+                    }
+                }
+            )
         st.markdown("")
         st.markdown("")
         if selected_1=="Add Order":
@@ -2645,7 +2692,7 @@ def orders_management_page():
                     type_of_product = st.selectbox(f"Type {i+1}", products, key=f"type_{i}")
                 with col2:
                     count_of_product = custom_number_input(
-                        f"Count {i+1}", min_value=1, step=1, key=f"count_{i}"
+                        f"Count {i+1}", min_value=0, step=1, key=f"count_{i}"
                     )
 
                 if len(st.session_state.re_order_products) <= i:
@@ -2962,7 +3009,7 @@ def orders_management_page():
                            fake_products = []
                            for i in range(num_products):
                              product_type = st.selectbox(f"Enter product type for item {i+1}:",products,key=f"type_{i}")
-                             count = custom_number_input(f"Enter count for {product_type}:", min_value=1, step=1, key=f"count_{i}")
+                             count = custom_number_input(f"Enter count for {product_type}:", min_value=0, step=1, key=f"count_{i}")
                              if product_type:  
                                fake_products.append({"Type": product_type, "Count": count})
                            products_list = fake_products
@@ -2976,7 +3023,7 @@ def orders_management_page():
                                 )
                             with col2:
                                 st.session_state.ca_modified_products[i]["Count"] = custom_number_input(
-                                    f"Count {i+1}", min_value=1, step=1, key=f"product_count_{i}", value=product["Count"]
+                                    f"Count {i+1}", min_value=0, step=1, key=f"product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
@@ -3087,20 +3134,20 @@ def orders_management_page():
                     }
                     for order in all_orders
                 ]
-                
-                gb = GridOptionsBuilder.from_dataframe(pd.DataFrame(orders_data))
-                gb.configure_selection("multiple", use_checkbox=True) 
+                df = pd.DataFrame(orders_data)
+                gb = GridOptionsBuilder.from_dataframe(df)
+                gb.configure_selection("multiple", use_checkbox=True, header_checkbox=True)
                 gb.configure_column("Order Number", sort="asc")  
                 grid_options = gb.build()
-                
                 grid_response = AgGrid(
-                    pd.DataFrame(orders_data),
-                    gridOptions=grid_options,
-                    update_mode=GridUpdateMode.SELECTION_CHANGED,
-                    height=400,
-                    theme="streamlit",  
+                        df,
+                        gridOptions=grid_options,
+                        update_mode=GridUpdateMode.SELECTION_CHANGED,
+                        height=400,
+                        theme="streamlit",
+                        fit_columns_on_grid_load=True,
+                        key="grid",
                 )
-                
                 selected_rows = grid_response["selected_rows"]
 
                 if selected_rows is None or selected_rows.empty:
@@ -3130,7 +3177,7 @@ def orders_management_page():
                                     cursor.execute(delete_query, (orders_tuple,))
                                     conn.commit()
                                     st.success(f"Successfully deleted {len(selected_order_numbers)} orders.")
-                                    log_action(st.session_state.username, "Delete Returned Order", f"Order ID: {selected_order_numbers}, Customers: {selected_customers}")
+                                    log_action(st.session_state.username, "Delete Completed Order", f"Order ID: {selected_order_numbers}, Customers: {selected_customers}")
                             except Exception as e:
                                 st.error(f"Error deleting orders: {e}")
         elif selected_1=="Analysis":
@@ -3548,21 +3595,38 @@ def orders_management_page():
             st.plotly_chart(fig,use_container_width=True)
     elif page == "Problems":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>🚨Problems</h1>", unsafe_allow_html=True)
-        selected = option_menu(
-            menu_title=None,
-            options=["Add Order", "Search Orders", "View All Orders", 'Modify Orders','Delete Orders','Analysis'],
-            icons=['cart', 'search', "list-task", 'gear','trash','graph-up'],
-            menu_icon="cast",
-            default_index=0,
-            orientation="horizontal",
-            styles={
-                'container': {
-                    'width': '100%',
-                    'margin': '30',
-                    'padding': '0',
+        if st.session_state.username=="walid" or st.session_state.username=="ahmed":
+            selected = option_menu(
+                menu_title=None,
+                options=["Add Order", "Search Orders", "View All Orders", 'Modify Orders','Delete Orders','Analysis'],
+                icons=['cart', 'search', "list-task", 'gear','trash','graph-up'],
+                menu_icon="cast",
+                default_index=0,
+                orientation="horizontal",
+                styles={
+                    'container': {
+                        'width': '100%',
+                        'margin': '30',
+                        'padding': '0',
+                    }
                 }
-            }
-        )
+            )
+        else:
+            selected = option_menu(
+                menu_title=None,
+                options=["Add Order", "Search Orders", "View All Orders", 'Modify Orders','Delete Orders'],
+                icons=['cart', 'search', "list-task", 'gear','trash'],
+                menu_icon="cast",
+                default_index=0,
+                orientation="horizontal",
+                styles={
+                    'container': {
+                        'width': '100%',
+                        'margin': '30',
+                        'padding': '0',
+                    }
+                }
+            )
 
         st.markdown("")
         st.markdown("")
@@ -3638,7 +3702,7 @@ def orders_management_page():
                 reason = "Delivery Man"
             elif status == "Team":
                 reason="Team"
-            elif status== "Customer":
+            elif status=="Customer":
                 reason="Customer"
             elif status =="Exchanged":
                 reason=st.selectbox("Reason",["Size","Quality"])
@@ -3661,7 +3725,7 @@ def orders_management_page():
                     type_of_product = st.selectbox(f"Type {i+1}", products, key=f"type_{i}")
                 with col2:
                     count_of_product = custom_number_input(
-                        f"Count {i+1}", min_value=1, step=1, key=f"count_{i}"
+                        f"Count {i+1}", min_value=0, step=1, key=f"count_{i}"
                     )
 
                 if len(st.session_state.sh_order_products) <= i:
@@ -3954,7 +4018,7 @@ def orders_management_page():
                                 )
                             with col2:
                                 st.session_state.sh_modified_products[i]["Count"] = custom_number_input(
-                                    f"Count {i+1}", min_value=1, step=1, key=f"product_count_{i}", value=product["Count"]
+                                    f"Count {i+1}", min_value=0, step=1, key=f"product_count_{i}", value=product["Count"]
                                 )
                             with col3:
                                 if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
@@ -3974,7 +4038,7 @@ def orders_management_page():
                             )
                         with col2:
                             st.session_state.sh_new_products[i]["Count"] = custom_number_input(
-                                f"New Count {i+1}", min_value=1, step=1, key=f"new_product_count_{i}", value=product["Count"]
+                                f"New Count {i+1}", min_value=0, step=1, key=f"new_product_count_{i}", value=product["Count"]
                             )
                         with col3:
                             if st.button(f"Remove New Product {i+1}", key=f"remove_new_product_{i}"):
@@ -4031,6 +4095,7 @@ def orders_management_page():
                                 st.error("Incorrect password. Order deletion canceled.")
                 else:
                     st.write("No order found with the given Order Number.")
+                
                 conn.close()
         elif selected=='Delete Orders':
             query = """
@@ -4065,20 +4130,20 @@ def orders_management_page():
                     }
                     for order in all_orders
                 ]
-                
-                gb = GridOptionsBuilder.from_dataframe(pd.DataFrame(orders_data))
-                gb.configure_selection("multiple", use_checkbox=True) 
+                df = pd.DataFrame(orders_data)
+                gb = GridOptionsBuilder.from_dataframe(df)
+                gb.configure_selection("multiple", use_checkbox=True, header_checkbox=True)
                 gb.configure_column("Order Number", sort="asc")  
                 grid_options = gb.build()
-                
                 grid_response = AgGrid(
-                    pd.DataFrame(orders_data),
-                    gridOptions=grid_options,
-                    update_mode=GridUpdateMode.SELECTION_CHANGED,
-                    height=400,
-                    theme="streamlit",  
+                        df,
+                        gridOptions=grid_options,
+                        update_mode=GridUpdateMode.SELECTION_CHANGED,
+                        height=400,
+                        theme="streamlit",
+                        fit_columns_on_grid_load=True,
+                        key="grid",
                 )
-                
                 selected_rows = grid_response["selected_rows"]
 
                 if selected_rows is None or selected_rows.empty:
@@ -4108,7 +4173,7 @@ def orders_management_page():
                                     cursor.execute(delete_query, (orders_tuple,))
                                     conn.commit()
                                     st.success(f"Successfully deleted {len(selected_order_numbers)} orders.")
-                                    log_action(st.session_state.username, "Delete Problem", f"Order ID: {selected_order_numbers}, Customers: {selected_customers}")
+                                    log_action(st.session_state.username, "Delete Completed Order", f"Order ID: {selected_order_numbers}, Customers: {selected_customers}")
                             except Exception as e:
                                 st.error(f"Error deleting orders: {e}")
         elif selected=="Analysis":
