@@ -259,7 +259,7 @@ def orders_management_page():
         total_shipping_returned_query = """
             SELECT 
                 COUNT(o.order_number) AS total_orders, 
-                COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_price
+                COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_price,
                 COALESCE(SUM(o.shipping_price), 0)AS total_shipping_pricee
             FROM returned_orders o;
           """
