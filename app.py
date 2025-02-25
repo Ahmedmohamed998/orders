@@ -532,38 +532,38 @@ def orders_management_page():
         )
 
         st.plotly_chart(fig,use_container_width=True)
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df_date["Date"],
-            y=df_date["Completed"],
-            mode="lines",
-            name="Completed",
-            line=dict(color="green", width=2)
-        ))
-        fig.add_trace(go.Scatter(
-            x=df_date["Date"],
-            y=df_date["Cancelled"],
-            mode="lines",
-            name="Cancelled",
-            line=dict(color="red", width=2, dash="dash")
-        ))
-        fig.add_trace(go.Scatter(
-            x=df_date["Date"],
-            y=df_date["Returned"],
-            mode="lines",
-            name="Returned",
-            line=dict(color="orange", width=2, dash="dot")
-        ))
+        # fig = go.Figure()
+        # fig.add_trace(go.Scatter(
+        #     x=df_date["Date"],
+        #     y=df_date["Completed"],
+        #     mode="lines",
+        #     name="Completed",
+        #     line=dict(color="green", width=2)
+        # ))
+        # fig.add_trace(go.Scatter(
+        #     x=df_date["Date"],
+        #     y=df_date["Cancelled"],
+        #     mode="lines",
+        #     name="Cancelled",
+        #     line=dict(color="red", width=2, dash="dash")
+        # ))
+        # fig.add_trace(go.Scatter(
+        #     x=df_date["Date"],
+        #     y=df_date["Returned"],
+        #     mode="lines",
+        #     name="Returned",
+        #     line=dict(color="orange", width=2, dash="dot")
+        # ))
 
-        fig.update_layout(
-            title="Number of Orders Over Time by Status",
-            xaxis_title="Date",
-            yaxis_title="Number of Orders",
-            template="plotly_white",
-            legend_title="Order Status"
-        )
+        # fig.update_layout(
+        #     title="Number of Orders Over Time by Status",
+        #     xaxis_title="Date",
+        #     yaxis_title="Number of Orders",
+        #     template="plotly_white",
+        #     legend_title="Order Status"
+        # )
 
-        st.plotly_chart(fig,use_container_width=True)
+        # st.plotly_chart(fig,use_container_width=True)
     elif page=="Customers":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>🧑Customers</h1>", unsafe_allow_html=True)
         st.markdown("") 
