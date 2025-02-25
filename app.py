@@ -574,13 +574,6 @@ def orders_management_page():
         st.markdown("")  
         conn = create_connection()
         cursor = conn.cursor()
-        # cursor.execute("UPDATE orders SET ship_company = UPPER(TRIM(ship_company))")
-        # conn.commit()  # Save changes
-        # cursor.execute("UPDATE returned_orders SET ship_company = UPPER(TRIM(ship_company))")
-        # conn.commit()  # Save changes
-        # cursor.execute("UPDATE shipping SET ship_company = UPPER(TRIM(ship_company))")
-        # conn.commit()  # Save changes
-
         cursor.execute("SELECT * FROM customers")
         customers = cursor.fetchall()
         conn.close()
