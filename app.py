@@ -62,7 +62,7 @@ users = {
     "walid": "12345678",
     "shams": "91011121",
     "metoo": "14151617",
-    "ahmed":"998",
+    "ahmed":"998"
 }
 
 def login_page():
@@ -73,7 +73,7 @@ def login_page():
         st.markdown("") 
         st.markdown("") 
         st.markdown("") 
-        st.image(r"logo.png", width=350)
+        st.image(r"E:\trying\logo.png", width=350)
     st.markdown("")
     st.markdown("")
     st.markdown("")
@@ -147,7 +147,7 @@ def season_selection_page_1():
             st.session_state.selected_season = "Summer"
             st.rerun()    
 def orders_management_page():
-    if st.session_state.selected_season is None and  (st.session_state.username=="walid" or  st.session_state.username=="ahmed"):
+    if st.session_state.selected_season is None and  (st.session_state.username=="walid" or st.session_state.username=="ahmed") :
         season_selection_page()
         return
     elif st.session_state.selected_season is None:
@@ -206,8 +206,8 @@ def orders_management_page():
     reasons_2=['Customer','Delivery Man','Team']
     Status=['Returned','Exchanged','Reshipping','Team']
     products=['Hoodie','Quarter Zipper','Acid Washed Hoodie']
-    Options= ["No", "Yes"]
     company=['SHIPBLU','BOSTA','WALID','SALAH']
+    Options= ["No", "Yes"]
     if page=='Analysis':
         def metric_card_with_icon(title, content, description,info):
                 st.markdown(
@@ -259,7 +259,7 @@ def orders_management_page():
         total_shipping_returned_query = """
             SELECT 
                 COUNT(o.order_number) AS total_orders, 
-                COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_price,
+                COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_price
                 COALESCE(SUM(o.shipping_price), 0)AS total_shipping_pricee
             FROM returned_orders o;
           """
@@ -268,7 +268,7 @@ def orders_management_page():
         total_shipping_problems_query = """
             SELECT 
                 COUNT(o.order_number) AS total_orders, 
-                COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_price,
+                COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_price
                 COALESCE(SUM(o.shipping_price), 0) AS total_shipping_pricee
             FROM shipping o;
           """
@@ -532,38 +532,80 @@ def orders_management_page():
         )
 
         st.plotly_chart(fig,use_container_width=True)
-        # fig = go.Figure()
-        # fig.add_trace(go.Scatter(
-        #     x=df_date["Date"],
-        #     y=df_date["Completed"],
-        #     mode="lines",
-        #     name="Completed",
-        #     line=dict(color="green", width=2)
-        # ))
-        # fig.add_trace(go.Scatter(
-        #     x=df_date["Date"],
-        #     y=df_date["Cancelled"],
-        #     mode="lines",
-        #     name="Cancelled",
-        #     line=dict(color="red", width=2, dash="dash")
-        # ))
-        # fig.add_trace(go.Scatter(
-        #     x=df_date["Date"],
-        #     y=df_date["Returned"],
-        #     mode="lines",
-        #     name="Returned",
-        #     line=dict(color="orange", width=2, dash="dot")
-        # ))
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=df_date["Date"],
+            y=df_date["Completed"],
+            mode="lines",
+            name="Completed",
+            line=dict(color="green", width=2)
+        ))
+        fig.add_trace(go.Scatter(
+            x=df_date["Date"],
+            y=df_date["Cancelled"],
+            mode="lines",
+            name="Cancelled",
+            line=dict(color="red", width=2, dash="dash")
+        ))
+        fig.add_trace(go.Scatter(
+            x=df_date["Date"],
+            y=df_date["Returned"],
+            mode="lines",
+            name="Returned",
+            line=dict(color="orange", width=2, dash="dot")
+        ))
 
-        # fig.update_layout(
-        #     title="Number of Orders Over Time by Status",
-        #     xaxis_title="Date",
-        #     yaxis_title="Number of Orders",
-        #     template="plotly_white",
-        #     legend_title="Order Status"
-        # )
+        fig.update_layout(
+            title="Number of Orders Over Time by Status",
+            xaxis_title="Date",
+            yaxis_title="Number of Orders",
+            template="plotly_white",
+            legend_title="Order Status"
+        )
 
-        # st.plotly_chart(fig,use_container_width=True)
+        st.plotly_chart(fig,use_container_width=True)
+    elif page=="Customers":
+        st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>🧑Customers</h1>", unsafe_allow_html=True)
+        st.markdown("") 
+        st.markdown("")   
+        st.markdown("")   
+        st.markdown("")   
+        st.header("Customers")
+        st.markdown("")  
+        conn = create_connection()
+        cursor = conn.cursor()
+        # cursor.execute("UPDATE orders SET ship_company = UPPER(TRIM(ship_company))")
+        # conn.commit()  # Save changes
+        # cursor.execute("UPDATE returned_orders SET ship_company = UPPER(TRIM(ship_company))")
+        # conn.commit()  # Save changes
+        # cursor.execute("UPDATE shipping SET ship_company = UPPER(TRIM(ship_company))")
+        # conn.commit()  # Save changes
+
+        cursor.execute("SELECT * FROM customers")
+        customers = cursor.fetchall()
+        conn.close()
+        
+        columns = ["Customer Name", "Customer Phone 1", "Customer Phone 2", "Email","Order Id"] 
+        customers_df = pd.DataFrame(customers, columns=columns)
+        customers_df.drop("Order Id",axis=1,inplace=True)
+        st.dataframe(customers_df) 
+        csv_data = customers_df.to_csv(index=False)
+        st.download_button(
+                    label="Download as CSV",
+                    data=csv_data,
+                    file_name="Customers.csv",
+                    mime="text/csv"
+                )     
+        excel_data = io.BytesIO()
+        with pd.ExcelWriter(excel_data, engine="xlsxwriter") as writer:
+            customers_df.to_excel(writer, index=False, sheet_name="Customers")
+        excel_data.seek(0)
+        st.download_button(
+                    label="Download as Excel",
+                    data=excel_data,
+                    file_name="Customers.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
     elif page == "Activity Logs":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>🕑Activity Logs</h1>", unsafe_allow_html=True)   
         st.markdown("") 
@@ -892,7 +934,6 @@ def orders_management_page():
                         "Total number of Products":order[9],
                     })
                 df = pd.DataFrame(data)
-                print(df['Shipping Company'].value_counts())
                 st.write("All Orders:")
                 st.dataframe(df)
                 st.write(f"**Total Orders:** {total_orders}")
