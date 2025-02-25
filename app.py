@@ -73,7 +73,7 @@ def login_page():
         st.markdown("") 
         st.markdown("") 
         st.markdown("") 
-        st.image(r"E:\trying\logo.png", width=350)
+        st.image(r"logo.png", width=350)
     st.markdown("")
     st.markdown("")
     st.markdown("")
