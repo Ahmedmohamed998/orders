@@ -438,7 +438,9 @@ def orders_management_page():
                 """
         cursor.execute(query)
         total_products = cursor.fetchone()[0]
-
+        query = """SELECT SUM(o.hoodies) AS total_orders FROM orders o"""
+        cursor.execute(query)
+        completed_products_count = cursor.fetchone()[0]
         conn.close()
         with col1:
             metric_card_with_icon(
@@ -467,7 +469,7 @@ def orders_management_page():
         with col4:
              metric_card_with_icon(
                             " AVG Shipping Price per Product", 
-                            f"{int(total_shipping_price/total_products):,}".replace(",", "."),"",
+                            f"{int(total_shipping_price/completed_products_count):,}".replace(",", "."),"",
                             "Total Shipping Price divide by total products"
                         )
         
