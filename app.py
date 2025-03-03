@@ -2218,6 +2218,12 @@ def orders_management_page():
                 st.subheader("Select an Order")
                 search_order_number = st.text_input("Enter Order Code")
                 if search_order_number:
+                    if "last_order_number" not in st.session_state or st.session_state.last_order_number != search_order_number:
+                        if "modified_products"  in st.session_state:
+                            del st.session_state.modified_products
+                        if "new_products"  in st.session_state:
+                            del st.session_state.new_products
+                        st.session_state.last_order_number = search_order_number
                     conn = create_connection()
                     cursor = conn.cursor()
                     
@@ -2249,7 +2255,7 @@ def orders_management_page():
                         new_phone2=st.text_input("Customer Phone 1",value=order_details[3])
                         new_email=st.text_input("Email",value=order_details[4])
                         new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[5]))
-                        new_cancel_reason=st.selectbox("Reason",index=reasons_1.index(order_details[6]))
+                        new_cancel_reason=st.selectbox("Reason",reasons_1,index=reasons_1.index(order_details[6]))
                         new_cancel_price=custom_number_input("Order Price",value=order_details[8])
                         new_date=st.date_input("Order Date",value=order_details[9])
                         if not products_list:
@@ -3020,6 +3026,12 @@ def orders_management_page():
                 search_order_number = st.text_input("Enter Order Code")
 
                 if search_order_number:
+                    if "last_order_number" not in st.session_state or st.session_state.last_order_number != search_order_number:
+                        if "modified_products"  in st.session_state:
+                            del st.session_state.modified_products
+                        if "new_products"  in st.session_state:
+                            del st.session_state.new_products
+                        st.session_state.last_order_number = search_order_number
                     conn = create_connection()
                     cursor = conn.cursor()
                     
@@ -4023,6 +4035,12 @@ def orders_management_page():
             search_order_number = st.text_input("Enter Order Code")
 
             if search_order_number:
+                if "last_order_number" not in st.session_state or st.session_state.last_order_number != search_order_number:
+                        if "modified_products"  in st.session_state:
+                            del st.session_state.modified_products
+                        if "new_products"  in st.session_state:
+                            del st.session_state.new_products
+                        st.session_state.last_order_number = search_order_number
                 conn = create_connection()
                 cursor = conn.cursor()
                 
