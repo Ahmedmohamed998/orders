@@ -1023,6 +1023,10 @@ def orders_management_page():
                 search_order_number = st.text_input("Enter Order Code")
 
                 if search_order_number:
+                    if "last_order_number" not in st.session_state or st.session_state.last_order_number != search_order_number:
+                        del st.session_state.modified_products
+                        del st.session_state.new_products
+                        st.session_state.last_order_number = search_order_number
                     conn = create_connection()
                     cursor = conn.cursor()
                     
