@@ -441,6 +441,9 @@ def orders_management_page():
         query = """SELECT SUM(o.hoodies) AS total_orders FROM orders o"""
         cursor.execute(query)
         completed_products_count = cursor.fetchone()[0]
+        query = """SELECT Count(o.order_number) AS total_orders FROM orders o"""
+        cursor.execute(query)
+        completed_orders_count = cursor.fetchone()[0]
         conn.close()
         with col1:
             metric_card_with_icon(
@@ -460,6 +463,13 @@ def orders_management_page():
                             f"{int(total_profit):,}".replace(",", "."),"",
                             "The total money gained from completed orders - total shipping coast."
                         )
+            st.markdown("")
+            metric_card_with_icon(
+                "Average Price Per Order", 
+                f"{int(total_profit / completed_orders_count):,}".replace(",", "."), 
+                "", 
+                "Average Profit per Order"
+            )
         with col3:
              metric_card_with_icon(
                             "Total Profit could have been achieved", 
