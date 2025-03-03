@@ -2247,7 +2247,7 @@ def orders_management_page():
                         new_phone2=st.text_input("Customer Phone 1",value=order_details[3])
                         new_email=st.text_input("Email",value=order_details[4])
                         new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[5]))
-                        new_cancel_reason=st.selectbox("Reason",reasons_1)
+                        new_cancel_reason=st.selectbox("Reason",index=reasons_1.index(order_details[6]))
                         new_cancel_price=custom_number_input("Order Price",value=order_details[8])
                         new_date=st.date_input("Order Date",value=order_details[9])
                         if not products_list:
