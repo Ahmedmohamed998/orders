@@ -2219,10 +2219,10 @@ def orders_management_page():
                 search_order_number = st.text_input("Enter Order Code")
                 if search_order_number:
                     if "last_order_number" not in st.session_state or st.session_state.last_order_number != search_order_number:
-                        if "modified_products"  in st.session_state:
-                            del st.session_state.modified_products
-                        if "new_products"  in st.session_state:
-                            del st.session_state.new_products
+                        if "re_modified_products"  in st.session_state:
+                            del st.session_state.re_modified_products
+                        if "re_new_products"  in st.session_state:
+                            del st.session_state.re_new_products
                         st.session_state.last_order_number = search_order_number
                     conn = create_connection()
                     cursor = conn.cursor()
@@ -3027,10 +3027,10 @@ def orders_management_page():
 
                 if search_order_number:
                     if "last_order_number" not in st.session_state or st.session_state.last_order_number != search_order_number:
-                        if "modified_products"  in st.session_state:
-                            del st.session_state.modified_products
-                        if "new_products"  in st.session_state:
-                            del st.session_state.new_products
+                        if "ca_modified_products"  in st.session_state:
+                            del st.session_state.ca_modified_products
+                        if "ca_new_products"  in st.session_state:
+                            del st.session_state.ca_new_products
                         st.session_state.last_order_number = search_order_number
                     conn = create_connection()
                     cursor = conn.cursor()
@@ -4036,10 +4036,10 @@ def orders_management_page():
 
             if search_order_number:
                 if "last_order_number" not in st.session_state or st.session_state.last_order_number != search_order_number:
-                        if "modified_products"  in st.session_state:
-                            del st.session_state.modified_products
-                        if "new_products"  in st.session_state:
-                            del st.session_state.new_products
+                        if "sh_modified_products"  in st.session_state:
+                            del st.session_state.sh_modified_products
+                        if "sh_new_products"  in st.session_state:
+                            del st.session_state.sh_new_products
                         st.session_state.last_order_number = search_order_number
                 conn = create_connection()
                 cursor = conn.cursor()
