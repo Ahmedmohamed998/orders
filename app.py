@@ -4194,7 +4194,7 @@ def orders_management_page():
                 grid_response = AgGrid(
                         df,
                         gridOptions=grid_options,
-                        update_mode=GridUpdateMode.SELECTION_CHANGED,
+                        update_mode=GridUpdateMode.VALUE_CHANGED,
                         height=400,
                         theme="streamlit",
                         fit_columns_on_grid_load=True,
