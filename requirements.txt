@@ -4,7 +4,7 @@ regex
 pandas
 xlsxwriter
 reportlab
-streamlit-aggrid
+streamlit-aggrid==0.3.4.post3
 streamlit_option_menu
 streamlit_shadcn_ui
 plotly
