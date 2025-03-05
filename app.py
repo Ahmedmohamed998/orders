@@ -4198,7 +4198,6 @@ def orders_management_page():
                         height=400,
                         theme="streamlit",
                         fit_columns_on_grid_load=True,
-                        key="grid",
                 )
                 selected_rows = grid_response["selected_rows"]
 
