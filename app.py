@@ -4224,7 +4224,7 @@ def orders_management_page():
                     st.write("Selected Rows:", selected_rows)  
                     if "Order Number" in selected_rows.columns:
                         selected_order_numbers = selected_rows["Order Number"].astype(str).tolist()
-                        selected_customers = selected_rows["Customer ID"].astype(str).tolist()
+                        selected_customers = selected_rows["Customer Name"].astype(str).tolist()
                     else:
                         st.error("The 'Order Number' column is missing in the selected rows.")
                         selected_order_numbers = []
