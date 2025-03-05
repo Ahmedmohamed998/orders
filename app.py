@@ -4171,7 +4171,7 @@ def orders_management_page():
                 conn.close()
         elif selected=='Delete Orders':
             query = """
-            SELECT o.order_id,o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
+            SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies,o.reason,o.customer_shipping_price
             FROM shipping o
             INNER JOIN customers c ON o.customer_id = c.customer_id
@@ -4187,26 +4187,25 @@ def orders_management_page():
             else:
                 orders_data = [
                     {
-                        "Order ID": (order[0] or 0),
-                        "Order Number": order[1],
-                        "Customer Name": order[2],
-                        "Phone 1": order[3],
-                        "Phone 2": order[4],
-                        "Email": order[5],
-                        "Shipping Company": order[6],
-                        "Region": order[7],
-                        "Status": order[8],
-                        "Reason":order[11],
-                        "Shipping Price In Shipping Company":order[9],
-                        "Actual Shipping Cost": (order[9] or 0) -(order[12] or 0),
-                        "Number of Products":order[10]
+                        "Order Number": order[0],
+                        "Customer Name": order[1],
+                        "Phone 1": order[2],
+                        "Phone 2": order[3],
+                        "Email": order[4],
+                        "Shipping Company": order[5],
+                        "Region": order[6],
+                        "Status": order[7],
+                        "Reason":order[10],
+                        "Shipping Price In Shipping Company":order[8],
+                        "Actual Shipping Cost": (order[8] or 0) -(order[11] or 0),
+                        "Number of Products":order[9]
                     }
                     for order in all_orders
                 ]
                 df = pd.DataFrame(orders_data)
                 gb = GridOptionsBuilder.from_dataframe(df)
                 gb.configure_selection("multiple", use_checkbox=True, header_checkbox=True)
-                gb.configure_column("Order ID", sort="asc")  
+                gb.configure_column("Order Number", sort="asc")  
                 grid_options = gb.build()
                 grid_response = AgGrid(
                         df,
@@ -4224,7 +4223,7 @@ def orders_management_page():
                 else:
                     st.write("Selected Rows:", selected_rows)  
                     if "Order Number" in selected_rows.columns:
-                        selected_order_numbers = selected_rows["Order ID"].astype(str).tolist()
+                        selected_order_numbers = selected_rows["Order Number"].astype(str).tolist()
                         selected_customers = selected_rows["Customer ID"].astype(str).tolist()
                     else:
                         st.error("The 'Order Number' column is missing in the selected rows.")
@@ -4239,7 +4238,7 @@ def orders_management_page():
                             if len(orders_tuple) == 1:
                                 orders_tuple = (orders_tuple[0],)
 
-                            delete_query = "DELETE FROM shipping WHERE order_id IN %s"
+                            delete_query = "DELETE FROM shipping WHERE order_number IN %s"
                             try:
                                 with create_connection() as conn:
                                     cursor = conn.cursor()
