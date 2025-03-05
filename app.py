@@ -482,6 +482,7 @@ def orders_management_page():
                             f"{int(total_shipping_price/completed_products_count):,}".replace(",", "."),"",
                             "Total Shipping Price divide by total products"
                         )
+                        
         
 
         fig = go.Figure()
@@ -586,6 +587,7 @@ def orders_management_page():
         st.markdown("")  
         conn = create_connection()
         cursor = conn.cursor()
+
         cursor.execute("SELECT * FROM customers")
         customers = cursor.fetchall()
         conn.close()
@@ -2218,12 +2220,6 @@ def orders_management_page():
                 st.subheader("Select an Order")
                 search_order_number = st.text_input("Enter Order Code")
                 if search_order_number:
-                    if "last_order_number" not in st.session_state or st.session_state.last_order_number != search_order_number:
-                        if "re_modified_products"  in st.session_state:
-                            del st.session_state.re_modified_products
-                        if "re_new_products"  in st.session_state:
-                            del st.session_state.re_new_products
-                        st.session_state.last_order_number = search_order_number
                     conn = create_connection()
                     cursor = conn.cursor()
                     
@@ -2255,7 +2251,7 @@ def orders_management_page():
                         new_phone2=st.text_input("Customer Phone 1",value=order_details[3])
                         new_email=st.text_input("Email",value=order_details[4])
                         new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[5]))
-                        new_cancel_reason=st.selectbox("Reason",reasons_1,index=reasons_1.index(order_details[6]))
+                        new_cancel_reason=st.selectbox("Reason",index=reasons_1.index(order_details[6]))
                         new_cancel_price=custom_number_input("Order Price",value=order_details[8])
                         new_date=st.date_input("Order Date",value=order_details[9])
                         if not products_list:
@@ -3019,19 +3015,13 @@ def orders_management_page():
             else:
                 st.write("No orders found.")
 
-        elif selected_1=="Modify Orders":    
+        elif selected_1=="Modify Orders":   
                 Status=["Go Only","Go And Back"]   
-                Reasons=["Customer","Delvirey Man","Quality","Size","Team"]   
+                Reasons=["Customer","Delvirey Man","Quality","Size","Team"]     
                 st.subheader("Select an Order")
                 search_order_number = st.text_input("Enter Order Code")
 
                 if search_order_number:
-                    if "last_order_number" not in st.session_state or st.session_state.last_order_number != search_order_number:
-                        if "ca_modified_products"  in st.session_state:
-                            del st.session_state.ca_modified_products
-                        if "ca_new_products"  in st.session_state:
-                            del st.session_state.ca_new_products
-                        st.session_state.last_order_number = search_order_number
                     conn = create_connection()
                     cursor = conn.cursor()
                     
@@ -4035,12 +4025,6 @@ def orders_management_page():
             search_order_number = st.text_input("Enter Order Code")
 
             if search_order_number:
-                if "last_order_number" not in st.session_state or st.session_state.last_order_number != search_order_number:
-                        if "sh_modified_products"  in st.session_state:
-                            del st.session_state.sh_modified_products
-                        if "sh_new_products"  in st.session_state:
-                            del st.session_state.sh_new_products
-                        st.session_state.last_order_number = search_order_number
                 conn = create_connection()
                 cursor = conn.cursor()
                 
