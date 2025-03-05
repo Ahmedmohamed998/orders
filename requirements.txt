@@ -1,10 +1,10 @@
-streamlit
+streamlit==1.20.0
 psycopg2-binary
 regex
 pandas
 xlsxwriter
 reportlab
-streamlit-aggrid==0.3.4.post3
+streamlit-aggrid
 streamlit_option_menu
 streamlit_shadcn_ui
 plotly
