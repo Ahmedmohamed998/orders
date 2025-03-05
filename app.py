@@ -4187,7 +4187,7 @@ def orders_management_page():
             else:
                 orders_data = [
                     {
-                        "Order ID": order[0]or0,
+                        "Order ID": (order[0] or 0),
                         "Order Number": order[1],
                         "Customer Name": order[2],
                         "Phone 1": order[3],
