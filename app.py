@@ -1440,7 +1440,7 @@ def orders_management_page():
                 )
                 selected_rows = grid_response["selected_rows"]
 
-                if selected_rows is None or selected_rows.empty:
+                if not selected_rows:
                     st.warning("No orders selected.")
                 else:
                     st.write("Selected Rows:", selected_rows)  
