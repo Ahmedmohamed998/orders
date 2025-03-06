@@ -4156,7 +4156,7 @@ def orders_management_page():
         elif selected=='Delete Orders':
             query = """
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies,o.reason,o.customer_shipping_price
+                c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies,o.reason,o.customer_shipping_price,o.order_id
             FROM shipping o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
@@ -4171,6 +4171,7 @@ def orders_management_page():
             else:
                 orders_data = [
                     {
+                        "Order Id":order[12],
                         "Order Number": order[0],
                         "Customer Name": order[1],
                         "Phone 1": order[2],
@@ -4207,7 +4208,7 @@ def orders_management_page():
                 else:
                     st.write("Selected Rows:", selected_rows)  
                     if "Order Number" in selected_rows.columns:
-                        selected_order_numbers = selected_rows["Order Number"].astype(str).tolist()
+                        selected_order_numbers = selected_rows["Order Id"].astype(str).tolist()
                         selected_customers = selected_rows["Customer Name"].astype(str).tolist()
                     else:
                         st.error("The 'Order Number' column is missing in the selected rows.")
@@ -4222,7 +4223,7 @@ def orders_management_page():
                             if len(orders_tuple) == 1:
                                 orders_tuple = (orders_tuple[0],)
 
-                            delete_query = "DELETE FROM shipping WHERE order_number IN %s"
+                            delete_query = "DELETE FROM shipping WHERE order_id IN %s"
                             try:
                                 with create_connection() as conn:
                                     cursor = conn.cursor()
