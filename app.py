@@ -880,8 +880,12 @@ def orders_management_page():
                             (order_number,)
                         )
                         existing_order_2 = cursor.fetchone()
-                        if existing_order or existing_order_1 or existing_order_2:
-                            st.error("Order Number already exists. Please enter a unique Order Number.")
+                        if existing_order:
+                            st.error("Order Number already exists in Completed Orders. Please enter a unique Order Number.")
+                        elif existing_order_1:
+                            st.error("Order Number already exists in Cancelled Orders. Please enter a unique Order Number.")
+                        elif existing_order_2:
+                            st.error("Order Number already exists in Returned Orders. Please enter a unique Order Number.")
                         else:
                             cursor.execute(
                                 "SELECT customer_id FROM customers WHERE customer_phone_1 = %s",
@@ -2162,8 +2166,12 @@ def orders_management_page():
                             (order_number,)
                         )
                         existing_order_2 = cursor.fetchone()
-                        if existing_order or existing_order_1 or existing_order_2:
-                            st.error("Order Number already exists. Please enter a unique Order Number.")
+                        if existing_order:
+                            st.error("Order Number already exists in Cancelled Orders. Please enter a unique Order Number.")
+                        elif existing_order_1:
+                            st.error("Order Number already exists in Completed Orders. Please enter a unique Order Number.")
+                        elif existing_order_2:
+                            st.error("Order Number already exists in Returned Orders. Please enter a unique Order Number.")
                         else:
                             cursor.execute(
                                 "SELECT customer_id FROM customers WHERE customer_phone_1 = %s",
@@ -2948,8 +2956,12 @@ def orders_management_page():
                             (order_number,)
                         )
                         existing_order_2 = cursor.fetchone()
-                        if existing_order or existing_order_1 or existing_order_2:
-                            st.error("Order Number already exists. Please enter a unique Order Number.")
+                        if existing_order:
+                            st.error("Order Number already exists in Returned Orders. Please enter a unique Order Number.")
+                        elif existing_order_1:
+                            st.error("Order Number already exists in Cancelled Orders. Please enter a unique Order Number.")
+                        elif existing_order_2:
+                            st.error("Order Number already exists in Completed Orders. Please enter a unique Order Number.")
                         else:
                             cursor.execute(
                                 "SELECT customer_id FROM customers WHERE customer_phone_1 = %s",
