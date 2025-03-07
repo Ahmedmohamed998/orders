@@ -3198,7 +3198,7 @@ def orders_management_page():
                         new_ship_company = st.selectbox("Shipping Company",company,index=company.index(order_details[5]))
                         new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
                         new_status=st.selectbox("Status",Status,Status.index(order_details[12]))
-                        new_reason = st.selectbox("Reason",Reasons,Reasons.index(order_details[7]))
+                        new_reason = st.selectbox("Reason",Reasons)
                         new_price=custom_number_input("Order Price",value=order_details[9])
                         new_shipping_price=custom_number_input("Shipping Price",value=order_details[10])
                         new_customer_shipping_price=custom_number_input("Shipping price paid by customer",value=order_details[14])
