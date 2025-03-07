@@ -1703,7 +1703,14 @@ def orders_management_page():
 
                     """
             df_products_percentage = pd.read_sql(query, conn)
-
+            total_shipping_query = """
+                SELECT ship_company, 
+                    SUM(shipping_price) AS total_shipping_price
+                FROM orders
+                GROUP BY ship_company
+                ORDER BY total_shipping_price DESC
+            """
+            df_shippingprice_byshippcompany_foreachproduct = pd.read_sql_query(total_shipping_query, conn)  
             conn.close()
             percentage_completed = total_orders / (total_orders + total_cancelled + total_returned)
             avg_shipping_price_1=total_shipping_prices/total_products
@@ -1726,7 +1733,20 @@ def orders_management_page():
                         """The average cost of shipping for all products. 
                         متوسط سعر الشحن للمنتج اللي هو عباره عن المجموع الكلي للشحن مقسوم على عدد المنتجات"""
                     )
+                    st.markdown("")
+                    result = df_shippingprice_byshippcompany_foreachproduct[
+                    df_shippingprice_byshippcompany_foreachproduct["ship_company"] == "WALID"
+                    ]["total_shipping_price"]
 
+                    if not result.empty:
+                        shipping_price_walid = result.values[0] / total_products
+                    else:
+                        shipping_price = 0
+                    metric_card_with_icon(
+                        "Avg Shipping Price(product)WALID", 
+                        f"{shipping_price_walid:.2f}","",
+                        "The average cost of shipping for all products."
+                    )
             with col2:
                     metric_card_with_icon(
                         "Total Price", 
@@ -1746,6 +1766,20 @@ def orders_management_page():
                         f"{int(total_prices/total_products):,}".replace(",", "."),"",
                         "The average revenue generated per product across all orders."
                     )
+                    st.markdown("")
+                    result = df_shippingprice_byshippcompany_foreachproduct[
+                    df_shippingprice_byshippcompany_foreachproduct["ship_company"] == "SALAH"
+                    ]["total_shipping_price"]
+
+                    if not result.empty:
+                        shipping_price_salah = result.values[0] / total_products
+                    else:
+                        shipping_price = 0
+                    metric_card_with_icon(
+                        "Avg Shipping Price(product)SALAH", 
+                        f"{shipping_price_salah:.2f}","",
+                        "The average cost of shipping for all products."
+                    )
             with col3:
                     metric_card_with_icon(
                         "Total Shipping Prices", 
@@ -1757,6 +1791,20 @@ def orders_management_page():
                         "Avg Days to Receive", 
                         f"{avg_day_to_receive:.2f}","",
                         "The average number of days it takes for customers to receive their orders."
+                    )
+                    st.markdown("")
+                    result = df_shippingprice_byshippcompany_foreachproduct[
+                    df_shippingprice_byshippcompany_foreachproduct["ship_company"] == "BOSTA"
+                    ]["total_shipping_price"]
+
+                    if not result.empty:
+                        shipping_price_bosta = result.values[0] / total_products
+                    else:
+                        shipping_price = 0
+                    metric_card_with_icon(
+                        "Avg Shipping Price(product)BOSTA", 
+                        f"{shipping_price_bosta:.2f}","",
+                        "The average cost of shipping for all products."
                     )
 
             with col4:
@@ -1772,6 +1820,20 @@ def orders_management_page():
                     f"{percentage_completed * 100:.2f}%", "", 
                     """The percentage of completed orders out of total orders.
                     نسبة الاوردرات الكامله بالنسبه لكل الاوردرات"""
+                    )
+                    st.markdown("")
+                    result = df_shippingprice_byshippcompany_foreachproduct[
+                    df_shippingprice_byshippcompany_foreachproduct["ship_company"] == "SHIPBLU"
+                    ]["total_shipping_price"]
+
+                    if not result.empty:
+                        shipping_price_shipblu = result.values[0] / total_products
+                    else:
+                        shipping_price = 0
+                    metric_card_with_icon(
+                        "Avg Shipping Price(product)SHIPBLU", 
+                        f"{shipping_price_shipblu:.2f}","",
+                        "The average cost of shipping for all products."
                     )
             fig = px.bar(
                 df, 
