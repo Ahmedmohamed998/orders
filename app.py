@@ -3160,7 +3160,7 @@ def orders_management_page():
 
         elif selected_1=="Modify Orders":   
                 Status=["Go Only","Go And Back"]   
-                Reasons=["Customer","Delvirey Man","Quality","Size","Team"]     
+                Reasons=["Customer","Delivery Man","Quality","Size","Team"]     
                 st.subheader("Select an Order")
                 search_order_number = st.text_input("Enter Order Code")
 
