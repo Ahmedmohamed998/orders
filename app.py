@@ -498,7 +498,7 @@ def orders_management_page():
             st.markdown("")
             metric_card_with_icon(
                 "Average Price Per Order", 
-                f"{int(total_profit / completed_orders_count):,}".replace(",", "."), 
+                f"{int(total_prices / completed_orders_count):,}".replace(",", "."), 
                 "", 
                 "Average Profit per Order"
             )
