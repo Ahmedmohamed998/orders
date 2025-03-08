@@ -500,7 +500,7 @@ def orders_management_page():
                 "Average Price Per Order", 
                 f"{int(total_prices / completed_orders_count):,}".replace(",", "."), 
                 "", 
-                "Average Profit per Order"
+                "Average Total Price per Order"
             )
             st.markdown("")
             result = df_shipping_price_per_company[
