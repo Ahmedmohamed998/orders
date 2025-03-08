@@ -205,7 +205,7 @@ def orders_management_page():
     reasons_1=['Customer','Out Of Stock','Team']
     reasons_2=['Customer','Delivery Man','Team']
     Status=['Returned','Exchanged','Reshipping','Team']
-    products=['Hoodie','Quarter Zipper','Acid Washed Hoodie']
+    products=['Hoodie','Quarter Zipper','Acid Washed Hoodie','Sweatpants']
     company=['SHIPBLU','BOSTA','WALID','SALAH']
     Options= ["No", "Yes"]
     if page=='Analysis':
