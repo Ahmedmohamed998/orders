@@ -1784,6 +1784,18 @@ def orders_management_page():
                 ORDER BY total_shipping_price DESC
             """
             df_shippingprice_byshippcompany_foreachproduct = pd.read_sql_query(total_shipping_query, conn)  
+            shipping_company_query_products = """
+                SELECT 
+                    o.ship_company AS Shipping_Company,
+                    SUM(o.hoodies) AS Total_Products
+                FROM orders o
+                GROUP BY o.ship_company
+                ORDER BY Total_Products DESC
+                """
+            cursor.execute(shipping_company_query_products)
+            shipping_data_products = cursor.fetchall()
+            df_shipping_products = pd.DataFrame(shipping_data_products, columns=["Shipping Company", "Total Products"])
+            print(df_shipping_products)
             conn.close()
             percentage_completed = total_orders / (total_orders + total_cancelled + total_returned)
             avg_shipping_price_1=total_shipping_prices/total_products
@@ -1806,20 +1818,6 @@ def orders_management_page():
                         """The average cost of shipping for all products. 
                         متوسط سعر الشحن للمنتج اللي هو عباره عن المجموع الكلي للشحن مقسوم على عدد المنتجات"""
                     )
-                    st.markdown("")
-                    result = df_shippingprice_byshippcompany_foreachproduct[
-                    df_shippingprice_byshippcompany_foreachproduct["ship_company"] == "WALID"
-                    ]["total_shipping_price"]
-
-                    if not result.empty:
-                        shipping_price_walid = result.values[0] / total_products
-                    else:
-                        shipping_price = 0
-                    metric_card_with_icon(
-                        "Avg Shipping Price(product)WALID", 
-                        f"{shipping_price_walid:.2f}","",
-                        "The average cost of shipping for all products."
-                    )
             with col2:
                     metric_card_with_icon(
                         "Total Price", 
@@ -1839,20 +1837,7 @@ def orders_management_page():
                         f"{int(total_prices/total_products):,}".replace(",", "."),"",
                         "The average revenue generated per product across all orders."
                     )
-                    st.markdown("")
-                    result = df_shippingprice_byshippcompany_foreachproduct[
-                    df_shippingprice_byshippcompany_foreachproduct["ship_company"] == "SALAH"
-                    ]["total_shipping_price"]
 
-                    if not result.empty:
-                        shipping_price_salah = result.values[0] / total_products
-                    else:
-                        shipping_price = 0
-                    metric_card_with_icon(
-                        "Avg Shipping Price(product)SALAH", 
-                        f"{shipping_price_salah:.2f}","",
-                        "The average cost of shipping for all products."
-                    )
             with col3:
                     metric_card_with_icon(
                         "Total Shipping Prices", 
@@ -1865,20 +1850,7 @@ def orders_management_page():
                         f"{avg_day_to_receive:.2f}","",
                         "The average number of days it takes for customers to receive their orders."
                     )
-                    st.markdown("")
-                    result = df_shippingprice_byshippcompany_foreachproduct[
-                    df_shippingprice_byshippcompany_foreachproduct["ship_company"] == "BOSTA"
-                    ]["total_shipping_price"]
 
-                    if not result.empty:
-                        shipping_price_bosta = result.values[0] / total_products
-                    else:
-                        shipping_price = 0
-                    metric_card_with_icon(
-                        "Avg Shipping Price(product)BOSTA", 
-                        f"{shipping_price_bosta:.2f}","",
-                        "The average cost of shipping for all products."
-                    )
 
             with col4:
                     metric_card_with_icon(
@@ -1894,20 +1866,7 @@ def orders_management_page():
                     """The percentage of completed orders out of total orders.
                     نسبة الاوردرات الكامله بالنسبه لكل الاوردرات"""
                     )
-                    st.markdown("")
-                    result = df_shippingprice_byshippcompany_foreachproduct[
-                    df_shippingprice_byshippcompany_foreachproduct["ship_company"] == "SHIPBLU"
-                    ]["total_shipping_price"]
 
-                    if not result.empty:
-                        shipping_price_shipblu = result.values[0] / total_products
-                    else:
-                        shipping_price = 0
-                    metric_card_with_icon(
-                        "Avg Shipping Price(product)SHIPBLU", 
-                        f"{shipping_price_shipblu:.2f}","",
-                        "The average cost of shipping for all products."
-                    )
             fig = px.bar(
                 df, 
                 x="Region", 
@@ -1928,25 +1887,48 @@ def orders_management_page():
             )
             st.markdown("")
             st.plotly_chart(fig, use_container_width=True)
+            df_merged = df_shipping.merge(
+                df_shippingprice_byshippcompany_foreachproduct[["ship_company", "total_shipping_price"]],
+                left_on="Shipping Company",
+                right_on="ship_company",
+                how="left"
+            )
 
+            df_merged = df_merged.merge(df_shipping_products, on="Shipping Company", how="left")
+
+            df_merged["Avg Shipping Price Per Order"] = df_merged["total_shipping_price"] / df_merged["Total Orders"]
+
+            df_merged["Avg Shipping Price Per Product"] = df_merged["total_shipping_price"] / df_merged["Total Products"]
             fig_shipping = px.bar(
-            df_shipping, 
-            x="Shipping Company", 
-            y="Total Orders", 
-            title="Total Orders by Shipping Company",
-            labels={"Shipping Company": "Shipping Company", "Total Orders": "Number of Orders"},
-            text=df_shipping['Percentage'].apply(lambda x: f"{x:.2f}%"), 
-            color="Shipping Company",
-            height=600
+                df_merged,
+                x="Shipping Company",
+                y="Total Orders",
+                title="Total Orders by Shipping Company",
+                labels={"Shipping Company": "Shipping Company", "Total Orders": "Number of Orders"},
+                color="Shipping Company",
+                height=600,
+                text=df_shipping['Percentage'].apply(lambda x: f"{x:.2f}%"), 
+                hover_data={
+                    "Shipping Company": False,  
+                    "Total Orders": True,
+                    "Total Products": True, 
+                    "Avg Shipping Price Per Order": ":.2f",  
+                    "Avg Shipping Price Per Product": ":.2f" 
+                }
             )
 
-            fig_shipping.update_traces(texttemplate='%{text}', textposition='outside')
-            fig_shipping.update_layout(
-            xaxis_title="Shipping Company",
-            yaxis_title="Total Orders",
-            uniformtext_minsize=8,
-            uniformtext_mode='hide'
+            fig_shipping.update_traces(
+                texttemplate='%{text}', 
+                textposition='outside' 
             )
+
+            fig_shipping.update_layout(
+                xaxis_title="Shipping Company",
+                yaxis_title="Total Orders",
+                uniformtext_minsize=8,
+                uniformtext_mode='hide'
+            )
+
             st.plotly_chart(fig_shipping, use_container_width=True)
             fig = px.line(
                 df_date, 
