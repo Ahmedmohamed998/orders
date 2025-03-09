@@ -3095,6 +3095,8 @@ def orders_management_page():
             SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0),COALESCE(SUM(o.shipping_price), 0)
             FROM returned_orders o
             """
+            if selected_ship_company != "All":
+                total_query += f" WHERE ship_company = '{selected_ship_company}'"
             cursor.execute(total_query)
             total_orders,total_products, total_price,total_shipping_price = cursor.fetchone()
             conn.close()
@@ -4104,6 +4106,8 @@ def orders_management_page():
             SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.shipping_price), 0)
             FROM shipping o
             """
+            if selected_ship_company != "All":
+                total_query += f" WHERE ship_company = '{selected_ship_company}'"
             cursor.execute(total_query)
             total_orders,total_products, total_price = cursor.fetchone()
             conn.close()
