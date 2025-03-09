@@ -4528,7 +4528,8 @@ def orders_management_page():
                     continue
                 products_dict = parse_products(products_str) 
                 total_quantity = sum(products_dict.values()) 
-
+                if total_quantity==0:
+                    continue
                 for product_type, quantity in products_dict.items():
                     shipping_price_for_product = (quantity / total_quantity)
 
