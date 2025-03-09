@@ -447,21 +447,48 @@ def orders_management_page():
         total_shipping_price_per_company_query = """
             SELECT 
                 ship_company, 
-                COALESCE(SUM(shipping_price), 0) AS total_shipping_price
+                COALESCE(SUM(shipping_price - customer_shipping_price), 0) AS total_shipping_price
             FROM (
-                SELECT ship_company, shipping_price FROM orders
+                SELECT ship_company, shipping_price, 0 AS customer_shipping_price FROM orders
                 UNION ALL
-                SELECT ship_company, shipping_price FROM returned_orders
+                SELECT ship_company, shipping_price, customer_shipping_price FROM returned_orders
                 UNION ALL
-                SELECT ship_company, shipping_price FROM shipping
+                SELECT ship_company, shipping_price, customer_shipping_price  FROM shipping
             ) AS combined_data
             GROUP BY ship_company
             ORDER BY total_shipping_price DESC;
-        """
 
+         """
         cursor.execute(total_shipping_price_per_company_query)
-
         df_shipping_price_per_company = pd.DataFrame(cursor.fetchall(), columns=["ship_company", "total_shipping_price"])
+        total_orders_per_company_query = """
+            SELECT 
+                ship_company, 
+                COUNT(*) AS total_orders
+            FROM (
+                SELECT ship_company FROM orders
+                UNION ALL
+                SELECT ship_company FROM returned_orders
+                UNION ALL
+                SELECT ship_company FROM shipping
+            ) AS combined_data
+            GROUP BY ship_company
+            ORDER BY total_orders DESC;
+
+         """
+        cursor.execute(total_orders_per_company_query)
+        df_orders_per_company = pd.DataFrame(cursor.fetchall(), columns=["ship_company", "total_orders"])
+        shipping_company_query_products = """
+                SELECT 
+                    o.ship_company AS Shipping_Company,
+                    SUM(o.hoodies) AS Total_Products
+                FROM orders o
+                GROUP BY o.ship_company
+                ORDER BY Total_Products DESC
+                """
+        cursor.execute(shipping_company_query_products)
+        shipping_data_products = cursor.fetchall()
+        df_shipping_products = pd.DataFrame(shipping_data_products, columns=["Shipping Company", "Total Products"])
         conn.close()
         with col1:
             metric_card_with_icon(
@@ -476,18 +503,33 @@ def orders_management_page():
                             "Total Shipping Price divide by total orders"
                         )
             st.markdown("")
-            result = df_shipping_price_per_company[
+            result_1 = df_shipping_price_per_company[
             df_shipping_price_per_company["ship_company"] == "SALAH"]["total_shipping_price"]
-
-            if not result.empty:
-                    shipping_price_salah = result.values[0] / completed_products_count
+            result_2=df_shipping_products[
+            df_shipping_products["Shipping Company"] == "SALAH"]["Total Products"]
+            if not result_1.empty and not result_2.empty:
+                    shipping_price_walid = result_1.values[0] / result_2.values[0]
             else:
                 shipping_price = 0
             metric_card_with_icon(
                         "Avg Shipping Price(product)SALAH", 
-                        f"{shipping_price_salah:.2f}","",
+                        f"{shipping_price_walid:.2f}","",
                         "The average cost of shipping for all products."
                     )
+            st.markdown("")
+            result_1 = df_shipping_price_per_company[
+            df_shipping_price_per_company["ship_company"] == "SALAH"]["total_shipping_price"]
+            result_2=df_orders_per_company[
+            df_shipping_price_per_company["ship_company"] == "SALAH"]["total_orders"]
+            if not result_1.empty and not result_2.empty:
+                    shipping_price_shipblu = result_1.values[0] / result_2.values[0]
+            else:
+                shipping_price = 0
+            metric_card_with_icon(
+                        "Avg Shipping Price(order)SALAH", 
+                        f"{shipping_price_shipblu:.2f}","",
+                        "The average cost of shipping for all products."
+                    ) 
 
         with col2:
             metric_card_with_icon(
@@ -503,11 +545,12 @@ def orders_management_page():
                 "Average Total Price per Order"
             )
             st.markdown("")
-            result = df_shipping_price_per_company[
+            result_1 = df_shipping_price_per_company[
             df_shipping_price_per_company["ship_company"] == "WALID"]["total_shipping_price"]
-
-            if not result.empty:
-                    shipping_price_walid = result.values[0] / completed_products_count
+            result_2=df_shipping_products[
+            df_shipping_products["Shipping Company"] == "WALID"]["Total Products"]
+            if not result_1.empty and not result_2.empty:
+                    shipping_price_walid = result_1.values[0] / result_2.values[0]
             else:
                 shipping_price = 0
             metric_card_with_icon(
@@ -515,26 +558,55 @@ def orders_management_page():
                         f"{shipping_price_walid:.2f}","",
                         "The average cost of shipping for all products."
                     )
+            st.markdown("")
+            result_1 = df_shipping_price_per_company[
+            df_shipping_price_per_company["ship_company"] == "WALID"]["total_shipping_price"]
+            result_2=df_orders_per_company[
+            df_shipping_price_per_company["ship_company"] == "WALID"]["total_orders"]
+            if not result_1.empty and not result_2.empty:
+                    shipping_price_shipblu = result_1.values[0] / result_2.values[0]
+            else:
+                shipping_price = 0
+            metric_card_with_icon(
+                        "Avg Shipping Price(order)WALID", 
+                        f"{shipping_price_shipblu:.2f}","",
+                        "The average cost of shipping for all products."
+                    ) 
 
         with col3:
             metric_card_with_icon(
-                            "Total Profit could have been achieved", 
+                            "Profit could have been achieved", 
                             f"{int(total_can_be_gained):,}".replace(",", "."),"",
                             "The total money could have been achieved which is total profit from cancelled and returned orders"
                         )
             st.markdown("")
-            result = df_shipping_price_per_company[
-            df_shipping_price_per_company["ship_company"] == "BOSTA"]["total_shipping_price"]
-
-            if not result.empty:
-                    shipping_price_bosta = result.values[0] / completed_products_count
+            result_1 = df_shipping_price_per_company[
+            df_shipping_price_per_company["ship_company"] == "SHIPBLU"]["total_shipping_price"]
+            result_2=df_shipping_products[
+            df_shipping_products["Shipping Company"] == "SHIPBLU"]["Total Products"]
+            if not result_1.empty and not result_2.empty:
+                    shipping_price_walid = result_1.values[0] / result_2.values[0]
             else:
                 shipping_price = 0
             metric_card_with_icon(
-                        "Avg Shipping Price(product)BOSTA", 
-                        f"{shipping_price_bosta:.2f}","",
+                        "Avg Shipping Price(product)SHIPBLU", 
+                        f"{shipping_price_walid:.2f}","",
                         "The average cost of shipping for all products."
                     )
+            st.markdown("")
+            result_1 = df_shipping_price_per_company[
+            df_shipping_price_per_company["ship_company"] == "SHIPBLU"]["total_shipping_price"]
+            result_2=df_orders_per_company[
+            df_shipping_price_per_company["ship_company"] == "SHIPBLU"]["total_orders"]
+            if not result_1.empty and not result_2.empty:
+                    shipping_price_shipblu = result_1.values[0] / result_2.values[0]
+            else:
+                shipping_price = 0
+            metric_card_with_icon(
+                        "Avg Shipping Price(order)SHIPBLU", 
+                        f"{shipping_price_shipblu:.2f}","",
+                        "The average cost of shipping for all products."
+                    ) 
         with col4:
             metric_card_with_icon(
                             " AVG Shipping Price per Product", 
@@ -542,18 +614,34 @@ def orders_management_page():
                             "Total Shipping Price divide by total products"
                         )
             st.markdown("")
-            result = df_shipping_price_per_company[
-            df_shipping_price_per_company["ship_company"] == "SHIPBLU"]["total_shipping_price"]
-
-            if not result.empty:
-                    shipping_price_shipblu = result.values[0] / completed_products_count
+            result_1 = df_shipping_price_per_company[
+            df_shipping_price_per_company["ship_company"] == "BOSTA"]["total_shipping_price"]
+            result_2=df_shipping_products[
+            df_shipping_products["Shipping Company"] == "BOSTA"]["Total Products"]
+            if not result_1.empty and not result_2.empty:
+                    shipping_price_walid = result_1.values[0] / result_2.values[0]
             else:
                 shipping_price = 0
             metric_card_with_icon(
-                        "Avg Shipping Price(product)SHIPBLU", 
+                        "Avg Shipping Price(product)BOSTA", 
+                        f"{shipping_price_walid:.2f}","",
+                        "The average cost of shipping for all products."
+                    )
+            st.markdown("")
+            result_1 = df_shipping_price_per_company[
+            df_shipping_price_per_company["ship_company"] == "BOSTA"]["total_shipping_price"]
+            result_2=df_orders_per_company[
+            df_shipping_price_per_company["ship_company"] == "BOSTA"]["total_orders"]
+            if not result_1.empty and not result_2.empty:
+                    shipping_price_shipblu = result_1.values[0] / result_2.values[0]
+            else:
+                shipping_price = 0
+            metric_card_with_icon(
+                        "Avg Shipping Price(order)BOSTA", 
                         f"{shipping_price_shipblu:.2f}","",
                         "The average cost of shipping for all products."
                     ) 
+
         fig = go.Figure()
 
         fig.add_trace(go.Bar(
@@ -614,38 +702,7 @@ def orders_management_page():
         )
 
         st.plotly_chart(fig,use_container_width=True)
-        # fig = go.Figure()
-        # fig.add_trace(go.Scatter(
-        #     x=df_date["Date"],
-        #     y=df_date["Completed"],
-        #     mode="lines",
-        #     name="Completed",
-        #     line=dict(color="green", width=2)
-        # ))
-        # fig.add_trace(go.Scatter(
-        #     x=df_date["Date"],
-        #     y=df_date["Cancelled"],
-        #     mode="lines",
-        #     name="Cancelled",
-        #     line=dict(color="red", width=2, dash="dash")
-        # ))
-        # fig.add_trace(go.Scatter(
-        #     x=df_date["Date"],
-        #     y=df_date["Returned"],
-        #     mode="lines",
-        #     name="Returned",
-        #     line=dict(color="orange", width=2, dash="dot")
-        # ))
 
-        # fig.update_layout(
-        #     title="Number of Orders Over Time by Status",
-        #     xaxis_title="Date",
-        #     yaxis_title="Number of Orders",
-        #     template="plotly_white",
-        #     legend_title="Order Status"
-        # )
-
-        # st.plotly_chart(fig,use_container_width=True)
     elif page=="Customers":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>🧑Customers</h1>", unsafe_allow_html=True)
         st.markdown("") 
