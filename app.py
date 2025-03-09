@@ -61,7 +61,6 @@ def log_action(username, action, details=None):
 users = {
     "walid": "12345678",
     "shams": "91011121",
-    "metoo": "14151617",
     "ahmed":"998"
 }
 
