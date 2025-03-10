@@ -543,35 +543,6 @@ def orders_management_page():
                 "", 
                 "Average Total Price per Order"
             )
-            st.markdown("")
-            result_1 = df_shipping_price_per_company[
-            df_shipping_price_per_company["ship_company"] == "WALID"]["total_shipping_price"]
-            result_2=df_shipping_products[
-            df_shipping_products["Shipping Company"] == "WALID"]["Total Products"]
-            if not result_1.empty and not result_2.empty:
-                    shipping_price_walid = result_1.values[0] / result_2.values[0]
-            else:
-                shipping_price = 0
-            metric_card_with_icon(
-                        "Avg Shipping Price(product)WALID", 
-                        f"{shipping_price_walid:.2f}","",
-                        "The average cost of shipping for all products."
-                    )
-            st.markdown("")
-            result_1 = df_shipping_price_per_company[
-            df_shipping_price_per_company["ship_company"] == "WALID"]["total_shipping_price"]
-            result_2=df_orders_per_company[
-            df_shipping_price_per_company["ship_company"] == "WALID"]["total_orders"]
-            if not result_1.empty and not result_2.empty:
-                    shipping_price_shipblu = result_1.values[0] / result_2.values[0]
-            else:
-                shipping_price = 0
-            metric_card_with_icon(
-                        "Avg Shipping Price(order)WALID", 
-                        f"{shipping_price_shipblu:.2f}","",
-                        "The average cost of shipping for all products."
-                    ) 
-
         with col3:
             metric_card_with_icon(
                             "Profit could have been achieved", 
