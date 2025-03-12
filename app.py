@@ -515,7 +515,14 @@ def orders_management_page():
                         f"{shipping_price_walid:.2f}","",
                         "The average cost of shipping for all products."
                     )
-
+            
+            st.markdown("")
+            metric_card_with_icon(
+                "Average Price Per Product", 
+                f"{int(total_profit / completed_products_count):,}".replace(",", "."), 
+                "", 
+                "Average Total Profit per Product"
+            )
         with col2:
             metric_card_with_icon(
                             "Total Profit", 
