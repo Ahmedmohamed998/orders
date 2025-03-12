@@ -1704,52 +1704,42 @@ def orders_management_page():
             df__shipping = df__shipping.sort_values(by="Total Shipping Price", ascending=False)
             total_orders_shipping = df__shipping['Total Shipping Price'].sum()
             df__shipping['Percentage'] = (df__shipping['Total Shipping Price'] / total_orders_shipping) * 100
-            query = """
-            SELECT 
-                o.order_number,
-                o.products,
-                o.shipping_price,
-                o.order_price
-            FROM orders o
-            """
-            cursor.execute(query)
-            data = cursor.fetchall()
-
             product_prices = {
-                "hoodie": 850,
-                "quarter zipper": 800,
-                "default": 750  
+                 "hoodie": 850,
+                 "quarter zipper": 800,
+                 "default": 750  
             }
 
-            total_product_prices = {}
+            total_product_prices = {}  # Stores total revenue per product
+            total_product_counts = {}  # Stores total quantity per product
 
             for order in data:
-                order_number, products_str, total_shipping_price, total_order_price = order
+                 order_number, products_str, total_shipping_price, total_order_price = order
                 if not products_str:
-                    continue  
-                
-                products_dict = parse_products(products_str)
-                total_quantity = sum(products_dict.values())
+                  continue  
 
-                if len(products_dict) == 1: 
-                    product_type = list(products_dict.keys())[0]
-                    if product_type in total_product_prices:
-                        total_product_prices[product_type] += total_order_price
-                    else:
-                        total_product_prices[product_type] = total_order_price
-                else:
-                    for product_type, quantity in products_dict.items():
-                        unit_price = product_prices.get(product_type.lower(), product_prices["default"])
-                        total_price_for_product = unit_price * quantity
-                        if product_type in total_product_prices:
-                            total_product_prices[product_type] += total_price_for_product
-                        else:
-                            total_product_prices[product_type] = total_price_for_product
+               products_dict = parse_products(products_str)  # Extract product quantities
 
-            df_total_prices = pd.DataFrame(total_product_prices.items(),columns=["Product Type", "Total Price"])
+               if len(products_dict) == 1:  
+                  product_type = list(products_dict.keys())[0]
+                  total_product_prices[product_type] = total_product_prices.get(product_type, 0) + total_order_price
+                  total_product_counts[product_type] = total_product_counts.get(product_type, 0) + sum(products_dict.values())
+              else:
+                  for product_type, quantity in products_dict.items():
+                      unit_price = product_prices.get(product_type.lower(), product_prices["default"])
+                      total_price_for_product = unit_price * quantity
+                      total_product_prices[product_type] = total_product_prices.get(product_type, 0) + total_price_for_product
+                      total_product_counts[product_type] = total_product_counts.get(product_type, 0) + quantity
+  
+# Create DataFrame
+            df_total_prices = pd.DataFrame(list(total_product_prices.items()), columns=["Product Type", "Total Price"])
+            df_total_prices["Total Quantity"] = df_total_prices["Product Type"].map(total_product_counts)
+            df_total_prices["Avg Price"] = df_total_prices["Total Price"] / df_total_prices["Total Quantity"]
             df_total_prices = df_total_prices.sort_values(by="Total Price", ascending=False)
-            total_pricesss = df_total_prices['Total Price'].sum()
-            df_total_prices['Percentage'] = (df_total_prices['Total Price'] / total_pricesss) * 100
+
+# Calculate percentage contribution
+            total_prices_sum = df_total_prices["Total Price"].sum()
+            df_total_prices["Percentage"] = (df_total_prices["Total Price"] / total_prices_sum) * 100
 
             query = """
             SELECT 
@@ -1978,17 +1968,25 @@ def orders_management_page():
             fig.update_traces(texttemplate="%{text}", textposition="outside")
             st.plotly_chart(fig,use_container_width=True)
             fig = px.bar(
-                df_total_prices,
-                x="Product Type",
-                y="Total Price",
-                title="Price Distribution by Product Type",
-                labels={"Total Price": "Price (Currency)"},
-                template="plotly_white",
-                text=df_total_prices['Percentage'].apply(lambda x: f"{x:.2f}%"),
-                color="Product Type"
-            )
-            fig.update_traces(texttemplate="%{text}", textposition="outside")
-            st.plotly_chart(fig,use_container_width=True)
+                    df_total_prices,
+                    x="Product Type",
+                    y="Total Price",
+                    title="Price Distribution by Product Type",
+                    labels={"Total Price": "Price (Currency)"},
+                    template="plotly_white",
+                    text=df_total_prices["Percentage"].apply(lambda x: f"{x:.2f}%"),
+                    color="Product Type"
+                    )
+
+            fig.update_traces(
+                          texttemplate="%{text}", 
+                          textposition="outside",
+                          hovertemplate="<b>%{x}</b><br>Total Price: %{y}<br>Avg Price: %{customdata:.2f}",
+                          customdata=df_total_prices["Avg Price"]  # Pass average price as custom data
+                     )
+
+            st.plotly_chart(fig, use_container_width=True)
+
             fig = px.bar(
                 df_total_counts,
                 x="Product Type",
