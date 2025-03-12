@@ -1705,8 +1705,10 @@ def orders_management_page():
             total_orders_shipping = df__shipping['Total Shipping Price'].sum()
             df__shipping['Percentage'] = (df__shipping['Total Shipping Price'] / total_orders_shipping) * 100
             product_prices = {
-                 "hoodie": 850,
-                 "quarter zipper": 800,
+                 "Hoodie": 850,
+                 "Quarter Zipper": 800,
+                 "Acid Washed Hoodie":900,
+                 "Sweatpants":700,
                  "default": 750  
             }
 
@@ -1718,7 +1720,7 @@ def orders_management_page():
                 if not products_str:
                   continue  
 
-               products_dict = parse_products(products_str)  # Extract product quantities
+                products_dict = parse_products(products_str)  # Extract product quantities
 
                if len(products_dict) == 1:  
                   product_type = list(products_dict.keys())[0]
