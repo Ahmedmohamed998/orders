@@ -1,6 +1,7 @@
 import streamlit as st
 import psycopg2
 import re
+import pytz
 import pandas as pd
 import io
 from reportlab.lib.pagesizes import letter, landscape
@@ -734,7 +735,10 @@ def orders_management_page():
         columns = ["Order iD", "Employee", "Action", "Timestamp", "Details"]
         logs_df = pd.DataFrame(logs, columns=columns)
         logs_df.drop("Order iD",axis=1,inplace=True)
-        
+        logs_df["Timestamp"] = pd.to_datetime(logs_df["Timestamp"])
+        utc_zone = pytz.utc
+        cairo_zone = pytz.timezone("Africa/Cairo")
+        logs_df["Timestamp"] = logs_df["Timestamp"].dt.tz_localize(utc_zone).dt.tz_convert(cairo_zone)
         st.dataframe(logs_df) 
         
     elif page == "Completed Orders":
