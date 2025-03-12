@@ -1664,6 +1664,14 @@ def orders_management_page():
             """
             cursor.execute(total_returned_query)
             total_returned=cursor.fetchone()[0]
+            total_shipping_query="""
+            SELECT
+                COUNT(o.order_number) AS total_orders
+            FROM shipping o
+            """
+            cursor.execute(total_shipping_query)
+            total_shipping=cursor.fetchone()[0]
+            
             date_query = """
                             SELECT 
                             o.order_date, 
@@ -1759,7 +1767,6 @@ def orders_management_page():
 
             total_prices_sum = df_total_prices["Total Price"].sum()
             df_total_prices["Percentage"] = (df_total_prices["Total Price"] / total_prices_sum) * 100
-
             query = """
             SELECT 
                 o.products
@@ -1833,6 +1840,7 @@ def orders_management_page():
             df_shipping_products = pd.DataFrame(shipping_data_products, columns=["Shipping Company", "Total Products"])
             conn.close()
             percentage_completed = total_orders / (total_orders + total_cancelled + total_returned)
+            percentage_completed_1 = total_orders / (total_orders + total_cancelled + total_returned+total_shipping)
             avg_shipping_price_1=total_shipping_prices/total_products
             with col1:
                     metric_card_with_icon(
@@ -1887,7 +1895,13 @@ def orders_management_page():
                         "The average number of days it takes for customers to receive their orders."
                     )
 
-
+                    st.markdown("")
+                    metric_card_with_icon(
+                    "Percentage of Completed Orders(problems)", 
+                    f"{percentage_completed_1 * 100:.2f}%", "", 
+                    """The percentage of completed orders out of total orders with problems.
+                    نسبة الاوردرات الكامله بالنسبه لكل الاوردرات"""
+                    )
             with col4:
                     metric_card_with_icon(
                         "Total Profit", 
@@ -2651,7 +2665,13 @@ def orders_management_page():
             """
             cursor.execute(total_returned_query)
             total_returned=cursor.fetchone()[0]
-
+            total_shipping_query="""
+            SELECT
+                COUNT(o.order_number) AS total_orders
+            FROM shipping o
+            """
+            cursor.execute(total_shipping_query)
+            total_shipping=cursor.fetchone()[0]
             reason_query = """
                 SELECT 
                     o.reason AS reason,
@@ -2702,6 +2722,7 @@ def orders_management_page():
             df_products_percentage = pd.read_sql(query, conn)
             conn.close()
             percentage_cancelled = total_orders / (total_orders + total_completed + total_returned)
+            percentage_cancelled_1 = total_orders / (total_orders + total_completed + total_returned+total_shipping)
             percentage__cancelled = total_orders / (total_orders + total_returned)
 
             with col1:
@@ -2723,6 +2744,13 @@ def orders_management_page():
                         f"{total_products:,}","", 
                         "The total number of products cancelled."
                     )
+                    st.markdown("")
+                    metric_card_with_icon(
+                    "Percentage of Cancelled Orders(problems)", 
+                    f"{percentage_cancelled_1 * 100:.2f}%", "", 
+                    """The percentage of cancelled orders out of total orders with problems.
+                    نسبة الاوردرات اللي اتلغت بالنسبه لكل الاوردرات"""
+                )
             with col3:
                     metric_card_with_icon(
                         "Total Price", 
@@ -3487,6 +3515,13 @@ def orders_management_page():
             """
             cursor.execute(total_completeed_query)
             total_comp=cursor.fetchone()[0]
+            total_shipping_query="""
+            SELECT
+                COUNT(o.order_number) AS total_orders
+            FROM shipping o
+            """
+            cursor.execute(total_shipping_query)
+            total_shipping=cursor.fetchone()[0]
             reason_query = """
                 SELECT 
                     o.reason AS reason,
@@ -3615,6 +3650,7 @@ def orders_management_page():
             df_products_percentage = pd.read_sql(query, conn)
             conn.close()
             percentage_returned = total_orders / (total_orders + total_cancelled + total_comp)
+            percentage_returned_1 = total_orders / (total_orders + total_cancelled + total_comp+total_shipping)
             percentage__returned = total_orders / (total_orders + total_cancelled)
             avg_shipping_price=total_shipping_prices/total_orders
             avg_shipping_price_1=total_shipping_prices/total_products
@@ -3687,6 +3723,12 @@ def orders_management_page():
                     "Percentage of Returned Orders(Cancelled & Returned Only)", 
                     f"{percentage__returned * 100:.2f}%", "", 
                     "The percentage of returned orders out of cancelled and returned orders only."
+                    )
+                    st.markdown("")
+                    metric_card_with_icon(
+                    "Percentage of Returned Orders(problems)", 
+                    f"{percentage_returned_1 * 100:.2f}%", "", 
+                    "The percentage of returned orders out of total orders with problems."
                     )
 
             fig = px.bar(
@@ -4577,9 +4619,31 @@ def orders_management_page():
 
                     """
             df_products_percentage = pd.read_sql(query, conn)
+            total_completed_query="""
+            SELECT
+                COUNT(o.order_number) AS total_orders
+            FROM orders o
+            """
+            cursor.execute(total_completed_query)
+            total_completed=cursor.fetchone()[0]
+            total_returned_query="""
+            SELECT
+                COUNT(o.order_number) AS total_orders
+            FROM returned_orders o
+            """
+            cursor.execute(total_returned_query)
+            total_returned=cursor.fetchone()[0]
+            total_cancelled_query="""
+            SELECT
+                COUNT(o.order_number) AS total_orders
+            FROM shipping o
+            """
+            cursor.execute(total_cancelled_query)
+            total_cancelled=cursor.fetchone()[0]
             conn.close()
             avg_shipping_price= total_shipping_prices/total_orders
             avg_shipping_price_1=total_shipping_prices/total_products
+            problems_pre=total_orders/(total_orders+total_cancelled+total_returned+total_completed)
             with col1:
                     metric_card_with_icon(
                         "Total Ordes", 
@@ -4598,6 +4662,12 @@ def orders_management_page():
                         "Avg Shipping Price", 
                         f"{int(avg_shipping_price):,}".replace(",", "."),"",
                         "The average cost of shipping for all orders."
+                    )
+                    st.markdown("")
+                    metric_card_with_icon(
+                    "Percentage of problems", 
+                    f"{problems_pre * 100:.2f}%", "", 
+                    "The percentage of  problems out of total orders."
                     )
             with col3:
                     metric_card_with_icon(
