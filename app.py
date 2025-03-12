@@ -1720,18 +1720,18 @@ def orders_management_page():
                  if not products_str:
                    continue  
 
-                products_dict = parse_products(products_str)  # Extract product quantities
+                 products_dict = parse_products(products_str)  # Extract product quantities
 
-                if len(products_dict) == 1:  
-                   product_type = list(products_dict.keys())[0]
-                   total_product_prices[product_type] = total_product_prices.get(product_type, 0) + total_order_price
-                   total_product_counts[product_type] = total_product_counts.get(product_type, 0) + sum(products_dict.values())
-                else:
-                   for product_type, quantity in products_dict.items():
-                       unit_price = product_prices.get(product_type.lower(), product_prices["default"])
-                       total_price_for_product = unit_price * quantity
-                       total_product_prices[product_type] = total_product_prices.get(product_type, 0) + total_price_for_product
-                       total_product_counts[product_type] = total_product_counts.get(product_type, 0) + quantity
+                 if len(products_dict) == 1:  
+                    product_type = list(products_dict.keys())[0]
+                    total_product_prices[product_type] = total_product_prices.get(product_type, 0) + total_order_price
+                    total_product_counts[product_type] = total_product_counts.get(product_type, 0) + sum(products_dict.values())
+                 else:
+                    for product_type, quantity in products_dict.items():
+                        unit_price = product_prices.get(product_type.lower(), product_prices["default"])
+                        total_price_for_product = unit_price * quantity
+                        total_product_prices[product_type] = total_product_prices.get(product_type, 0) + total_price_for_product
+                        total_product_counts[product_type] = total_product_counts.get(product_type, 0) + quantity
   
 # Create DataFrame
             df_total_prices = pd.DataFrame(list(total_product_prices.items()), columns=["Product Type", "Total Price"])
