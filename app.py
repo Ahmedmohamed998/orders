@@ -1986,17 +1986,17 @@ def orders_management_page():
                 labels={"Total Price": "Price (Currency)"},
                 template="plotly_white",
                 text=df_total_prices["Percentage"].apply(lambda x: f"{x:.2f}%"),
-                color="Product Type"
+                color="Product Type",
+                custom_data=[df_total_prices["Avg Price"]]  # Explicitly map Avg Price
             )
 
             fig.update_traces(
                 texttemplate="%{text}", 
                 textposition="outside",
-                hovertemplate="<b>%{x}</b><br>Total Price: %{y}<br>Avg Price: %{customdata:.2f}",
-                customdata=df_total_prices["Avg Price"]  # Pass average price as custom data
+                hovertemplate="<b>%{x}</b><br>Total Price: %{y}<br>Avg Price: %{customdata[0]:.2f}"
             )
-
             st.plotly_chart(fig, use_container_width=True)
+
             fig = px.bar(
                 df_total_counts,
                 x="Product Type",
