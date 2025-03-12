@@ -1716,8 +1716,10 @@ def orders_management_page():
             data = cursor.fetchall()
 
             product_prices = {
-                "hoodie": 850,
-                "quarter zipper": 800,
+                "Hoodie": 850,
+                "Quarter Zipper": 800,
+                "Acid Washed Hoodie":900,
+                "Sweatpants":700,
                 "default": 750  
             }
 
