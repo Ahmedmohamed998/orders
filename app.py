@@ -515,6 +515,20 @@ def orders_management_page():
                         f"{shipping_price_walid:.2f}","",
                         "The average cost of shipping for all products."
                     )
+
+        with col2:
+            metric_card_with_icon(
+                            "Total Profit", 
+                            f"{int(total_profit):,}".replace(",", "."),"",
+                            "The total money gained from completed orders - total shipping coast."
+                        )
+            st.markdown("")
+            metric_card_with_icon(
+                "Average Price Per Order", 
+                f"{int(total_prices / completed_orders_count):,}".replace(",", "."), 
+                "", 
+                "Average Total Price per Order"
+            )
             st.markdown("")
             result_1 = df_shipping_price_per_company[
             df_shipping_price_per_company["ship_company"] == "SALAH"]["total_shipping_price"]
@@ -530,19 +544,6 @@ def orders_management_page():
                         "The average cost of shipping for all products."
                     ) 
 
-        with col2:
-            metric_card_with_icon(
-                            "Total Profit", 
-                            f"{int(total_profit):,}".replace(",", "."),"",
-                            "The total money gained from completed orders - total shipping coast."
-                        )
-            st.markdown("")
-            metric_card_with_icon(
-                "Average Price Per Order", 
-                f"{int(total_prices / completed_orders_count):,}".replace(",", "."), 
-                "", 
-                "Average Total Price per Order"
-            )
         with col3:
             metric_card_with_icon(
                             "Profit could have been achieved", 
