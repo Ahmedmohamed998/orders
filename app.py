@@ -62,7 +62,8 @@ def log_action(username, action, details=None):
 users = {
     "walid": "12345678",
     "shams": "91011121",
-    "ahmed":"998"
+    "ahmed":"998",
+    "heba":"56781234"
 }
 
 def login_page():
