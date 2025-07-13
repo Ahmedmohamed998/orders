@@ -1,9 +1,9 @@
 import streamlit as st
 import psycopg2
 import re
-import pytz
 import pandas as pd
 import io
+import pytz
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
@@ -12,10 +12,15 @@ from streamlit_option_menu import option_menu
 import streamlit_shadcn_ui as ui
 import plotly.express as px
 import plotly.graph_objects as go
+from datetime import date
+import requests
+from dateutil.parser import parse
 db_host = st.secrets["database"]["host"]
 db_user = st.secrets["database"]["user"]
 db_password = st.secrets["database"]["password"]
 db_name = st.secrets["database"]["database"]
+SHOP_NAME = 'e6rs1y-km'
+ACCESS_TOKEN = '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'
 
 def create_connection():
     return psycopg2.connect(
@@ -147,25 +152,7 @@ def season_selection_page_1():
         if st.button("Select Summer", key="summer", use_container_width=True):
             st.session_state.selected_season = "Summer"
             st.rerun()    
-def orders_management_page():
-    if st.session_state.selected_season is None and  (st.session_state.username=="walid" or st.session_state.username=="ahmed") :
-        season_selection_page()
-        return
-    elif st.session_state.selected_season is None:
-        season_selection_page_1()
-        return
-    if st.session_state.selected_season == "Spring":
-        st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: 200px;'>Coming Soon...</h1>", unsafe_allow_html=True)
-        st.markdown("")
-        st.markdown("")
-        st.markdown("")
-        col1,col2,col3=st.columns([1.75,1,1])
-        with col2:
-            if st.button("Back"):
-                st.session_state.selected_season = None 
-                season_selection_page()
-                st.rerun()
-            return 
+def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_hole,customers):
     def custom_number_input(label, value=0, min_value=0, step=1,key=None):
         value = st.text_input(label, value=str(value),key=key)
 
@@ -180,16 +167,16 @@ def orders_management_page():
 
         return numeric_value
         
-    if (st.session_state.username=="walid" or st.session_state.username=="ahmed") and  st.session_state.selected_season== "Winter":
+    if (st.session_state.username=="walid" or st.session_state.username=="ahmed"):
         with st.sidebar:
-            page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Problems','Customers','Analysis','Information','Activity Logs'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people','graph-up','exclamation-circle','clock'], menu_icon="list", default_index=0)
+            page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Problems','On Hold','Customers','Analysis','Information','Activity Logs'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','exclamation-circle','people','graph-up','exclamation-circle','clock'], menu_icon="list", default_index=0)
             if st.button("Logout"):
                 st.session_state.logged_in = False
                 log_action(st.session_state.username, "Logout", "Successful logout")
                 st.rerun()
-    elif st.session_state.selected_season== "Winter":
+    else:
         with st.sidebar:
-            page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Problems','Customers','Information'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','people','exclamation-circle'], menu_icon="list", default_index=0)
+            page=option_menu("Orders Management", ["Completed Orders", 'Cancelled Orders','Returned Orders','Problems','On Hold','Customers','Information'],icons=['check-circle', 'ban','arrow-left','exclamation-circle','exclamation-circle','people','exclamation-circle'], menu_icon="list", default_index=0)
             if st.button("Logout"):
                 st.session_state.logged_in = False
                 log_action(st.session_state.username, "Logout", "Successful logout")
@@ -200,16 +187,492 @@ def orders_management_page():
             "Fayoum", "Gharbia", "Ismailia", "Menofia", "Minya", "Qaliubiya",
             "New Valley", "Suez", "Aswan", "Assiut", "Beni Suef", "Port Said",
             "Damietta", "Sharkia", "South Sinai", "Kafr El Sheikh", "Matruh",
-            "Luxor", "Qena", "North Sinai", "Sohag"
+            "Luxor", "Qena", "North Sinai", "Sohag","Monufia","Qalyubia","Al Sharqia"
         ]
     reasons=['Customer','Delivery Man']
     reasons_1=['Customer','Out Of Stock','Team']
     reasons_2=['Customer','Delivery Man','Team']
     Status=['Returned','Exchanged','Reshipping','Team']
-    products=['Hoodie','Quarter Zipper','Acid Washed Hoodie','Sweatpants']
-    company=['SHIPBLU','BOSTA','WALID','SALAH']
+    products=['Set','Dxlr T-Shirt','T-Shirt','Sweatpants','Short']
+    company=['BOSTA','WALID','SALAH']
     Options= ["No", "Yes"]
-    if page=='Analysis':
+    if page == 'On Hold':
+        st.title("🛍 Shopify Orders Retriever")
+        selected_4 = option_menu(
+                menu_title=None,
+                options=["Retrive Orders","View All Orders","Modify Orders"],
+                icons=['cart',"list-task",'gear'],
+                menu_icon="cast",
+                default_index=0,
+                orientation="horizontal",
+                styles={
+                    'container': {
+                        'width': '100%',
+                        'margin': '30',
+                        'padding': '0',
+                    }
+                }
+            )
+        if selected_4=="Retrive Orders":
+            start_date = st.date_input("Start Date")
+            end_date = st.date_input("End Date")
+
+            if start_date > end_date:
+                st.error("Start date must be before end date.")
+            else:
+                if st.button("📦 Retrieve Orders"):
+
+                    all_orders = []
+
+                    url = f"https://{SHOP_NAME}.myshopify.com/admin/api/2024-04/orders.json?limit=250&status=any&created_at_min={start_date}T00:00:00-00:00&created_at_max={end_date}T23:59:59-00:00"
+
+                    headers = {
+                        "X-Shopify-Access-Token": ACCESS_TOKEN,
+                        "Content-Type": "application/json"
+                    }
+
+                    with st.spinner("Retrieving orders..."):
+                        while url:
+                            response = requests.get(url, headers=headers)
+                            if response.status_code != 200:
+                                st.error(f"❌ Error: {response.status_code} - {response.text}")
+                                break
+
+                            data = response.json().get("orders", [])
+                            for order in data:
+                                order_number = order.get("order_number")
+                                total_price = order.get("total_price")
+                                subtotal_price = order.get("subtotal_price")
+                                total_tax = order.get("total_tax")
+                                total_discounts = order.get("total_discounts")
+                                shipping_price = order.get("total_shipping_price_set", {}).get("shop_money", {}).get("amount", "0.00")
+                                financial_status = order.get("financial_status", "N/A")
+
+                                # Products and details
+                                line_items = order.get("line_items", [])
+                                products_details = []
+                                for item in line_items:
+                                    title = item.get("title")
+                                    quantity = item.get("quantity")
+                                    price = float(item.get("price", 0)) 
+                                    total_discount = item.get("total_discount")
+                                    line_price = item.get("line_price")
+                                    details = f"{title} | Qty: {quantity} | Price: £{price} | Discount: £{total_discount} | Line Total: £{line_price}"
+                                    products_details.append(details)
+                                products_str = ", ".join([f"{item.get('title')}: {item.get('quantity')}" for item in line_items])
+                                products_prices = ", ".join([f"{item.get('title')}: {item.get('price',0)}" for item in line_items])
+                                product_count = len(line_items)
+                                region = order.get("billing_address", {}).get("province", "N/A")
+                                created_at_raw = order.get("created_at")
+                                created_date = parse(created_at_raw).date() if created_at_raw else None
+
+                                all_orders.append({
+                                    "order_number": order_number,
+                                    "Date": created_date,
+                                    "Region": region,
+                                    "products": products_str,
+                                    "Product Count": product_count,
+                                    "Product Prices": products_prices,
+                                    "Subtotal": f"£{subtotal_price}",
+                                    "Discounts": f"£{total_discounts}",
+                                    "Shipping": int(float(shipping_price)),
+                                    "Tax": f"£{total_tax}",
+                                    "Total Price":total_price,
+                                    "Status": financial_status,
+                                })
+
+                            # Pagination
+                            link_header = response.headers.get("Link")
+                            if link_header and 'rel="next"' in link_header:
+                                parts = link_header.split(",")
+                                next_url = [part.split(";")[0].strip("<> ") for part in parts if 'rel="next"' in part]
+                                url = next_url[0] if next_url else None
+                            else:
+                                url = None
+
+                    if all_orders:
+                        df = pd.DataFrame(all_orders)
+                        def classify_product(product_name):
+                            product_name = product_name.lower()  
+                            if "straight sweatpants" in product_name:
+                                return "Sweatpants"
+                            elif "ya zaman (black)" in product_name or "ya zaman (white)" in product_name:
+                                return "Dxlr T-Shirt"
+                            elif "backspace my past" in product_name or "lost my ctrl" in product_name:
+                                return "T-Shirt"
+                            elif "set" in product_name:
+                                return "Set"
+                            elif "short" in product_name:
+                                return "Short"
+
+                        def map_products_to_types(product_str):
+                            products = [p.strip() for p in product_str.split(",") if p.strip()]
+                            type_counts = {}
+
+                            for prod in products:
+                                prod_type = classify_product(prod)
+                                type_counts[prod_type] = type_counts.get(prod_type, 0) + 1
+
+                            return ", ".join([f"{k}:{v}" for k, v in type_counts.items()])
+                        def map_product_prices_to_types(prices_str):
+                            products = [p.strip() for p in prices_str.split(",") if p.strip()]
+                            type_prices = {}
+
+                            for prod in products:
+                                # Split by the last colon to separate name and price
+                                if ":" in prod:
+                                    name_part, price_part = prod.rsplit(":", 1)
+                                    prod_type = classify_product(name_part.strip())
+                                    try:
+                                        price = float(price_part.strip())
+                                    except ValueError:
+                                        price = 0.0
+                                    type_prices[prod_type] = type_prices.get(prod_type, 0) + price
+
+                            return ", ".join([f"{k}: {v:.2f}" for k, v in type_prices.items()])
+                        df['Product Prices'] = df["Product Prices"].apply(map_product_prices_to_types)
+                        df['products']= df["products"].apply(map_products_to_types)
+                        st.dataframe(df)
+                        try:
+                            conn = create_connection()
+                            cursor = conn.cursor()
+                            for _, row in df.iterrows():
+                                cursor.execute(f"SELECT 1 FROM {on_hole} WHERE order_number = %s", (str(row["order_number"]),))
+                                if not cursor.fetchone():
+                                    cursor.execute(f"""
+                                        INSERT INTO {on_hole} (order_number, total_price, products, product_count, region, date, product_prices,Shipping)
+                                        VALUES (%s, %s, %s, %s, %s, %s, %s,%s)
+                                    """, (
+                                        row["order_number"],
+                                        float(row["Total Price"]),
+                                        row["products"],
+                                        row["Product Count"],
+                                        row["Region"],
+                                        row["Date"],
+                                        row["Product Prices"],
+                                        row["Shipping"],
+                                    ))
+                            conn.commit()
+                            cursor.close()
+                            conn.close()
+                            st.success("✅ Orders saved to database")
+                        except Exception as e:
+                            st.error(f"❌ Database error: {e}")
+                    else:
+                        st.warning("⚠ No orders found for the selected period.")
+        elif selected_4=="View All Orders":
+            st.header("📋 On-Hold Orders")
+
+            conn = create_connection()
+            cursor = conn.cursor()
+
+            try:
+                    cursor.execute(f"SELECT * FROM {on_hole}")
+                    data = cursor.fetchall()
+                    columns = [desc[0] for desc in cursor.description]
+
+                    if data:
+                        df = pd.DataFrame(data, columns=columns)
+                        st.dataframe(df)
+                    else:
+                        st.info("No orders currently in on_hole.")
+
+            except Exception as e:
+                    st.error(f"Error retrieving data: {e}")
+
+            finally:
+                    cursor.close()
+                    conn.close()
+        elif selected_4=="Modify Orders":
+                st.header("Update or Remove Orders")
+                
+                st.subheader("Select an Order")
+                search_order_number = st.text_input("Enter Order Code")
+
+                if search_order_number:
+                    if "last_order_number" not in st.session_state or st.session_state.last_order_number != search_order_number:
+                        if "modified_products"  in st.session_state:
+                            del st.session_state.modified_products
+                        if "new_products"  in st.session_state:
+                            del st.session_state.new_products
+                        st.session_state.last_order_number = search_order_number
+                    conn = create_connection()
+                    cursor = conn.cursor()             
+                    cursor.execute(f"SELECT * FROM {on_hole} WHERE order_number = %s", (search_order_number,))
+
+                    order_details = cursor.fetchone()
+                    if order_details:
+                        st.write("Order Details:")
+                        st.table([order_details])
+                        if order_details[2]:  
+                          products_list = [
+                            {"Type": p.split(":")[0], "Count": int(p.split(":")[1])}
+                            for p in order_details[2].split(", ") if ":" in p
+                          ]
+                        else:
+                          products_list = [] 
+
+                        st.subheader("Update Order")
+                        product_prices=order_details[6]
+                        new_order_number=st.text_input("Order Number",value=order_details[0])
+                        new_name=st.text_input("Customer Name")
+                        new_phone1=st.text_input("Customer Phone 1")
+                        new_phone2=st.text_input("Customer Phone 2")
+                        new_email=st.text_input("Email")
+                        new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[4]))
+                        new_date=st.date_input("Order Date",value=order_details[5])
+                        if not products_list:
+                           num_products = custom_number_input("Enter the number of products:", min_value=0,step=1)
+                           fake_products = []
+                           for i in range(num_products):
+                             product_type = st.selectbox(f"Enter product type for item {i+1}:",products,key=f"type_{i}")
+                             count = custom_number_input(f"Enter count for {product_type}:", min_value=0, step=1, key=f"count_{i}")
+                             if product_type:
+                               fake_products.append({"Type": product_type, "Count": count})
+                           products_list = fake_products
+                        if "modified_products" not in st.session_state:
+                            st.session_state.modified_products = products_list
+                        for i, product in enumerate(st.session_state.modified_products):
+                            col1, col2, col3 = st.columns([1, 1, 1])
+                            with col1:
+                                st.session_state.modified_products[i]["Type"] = st.selectbox(
+                                    f"Type {i+1}", products, key=f"product_type_{i}", index=products.index(product["Type"])
+                                )
+                            with col2:
+                                st.session_state.modified_products[i]["Count"] = custom_number_input(
+                                    f"Count {i+1}", min_value=0, step=1, key=f"product_count_{i}", value=product["Count"]
+                                )
+                            with col3:
+                                if st.button(f"Remove Product {i+1}", key=f"remove_product_{i}"):
+                                    st.session_state.modified_products.pop(i)
+                                    st.rerun()
+                        if "new_products" not in st.session_state:
+                            st.session_state.new_products = []
+                        if st.button("Add More Products"):
+                            st.session_state.new_products.append({"Type": "", "Count": 1})
+                        for i, product in enumerate(st.session_state.new_products):
+                            col1, col2, col3 = st.columns([1, 1, 1])
+                            with col1:
+                                st.session_state.new_products[i]["Type"] = st.selectbox(
+                                    f"New Type {i+1}", products, key=f"new_product_type_{i}"
+                                )
+                            with col2:
+                                st.session_state.new_products[i]["Count"] = custom_number_input(
+                                    f"New Count {i+1}", min_value=0, step=1, key=f"new_product_count_{i}", value=product["Count"]
+                                )
+                            with col3:
+                                if st.button(f"Remove New Product {i+1}", key=f"remove_new_product_{i}"):
+                                    st.session_state.new_products.pop(i)
+                                    st.rerun()
+                        new_order_price = custom_number_input("Order Price",value=order_details[1],min_value=0,step=1)
+                        new_shipping_price_by_company = custom_number_input("Shipping Price Paid By Company",value=order_details[7],min_value=0,step=1)
+                        order_type=st.selectbox("Order Type",options=["Completed","Cancelled","Returned"])
+                        if order_type=="Completed":
+                            new_ship_company = st.selectbox("Shipping Company",company)
+                            new_shipping_price = custom_number_input("Shipping Price Paid By Customer",min_value=0,step=1)
+                            new_days_to_receive=st.text_input("Days_to_receive")
+                            if st.button("Save Completed Order"):
+                                # First, check if the customer already exists based on phone number
+                                cursor.execute(
+                                    f"SELECT customer_id FROM {customers} WHERE customer_phone_1 = %s",
+                                    (new_phone1,)
+                                )
+                                customer = cursor.fetchone()
+
+                                if customer:
+                                    customer_id = customer[0]
+                                else:
+                                    # If not exists, insert new customer
+                                    cursor.execute(
+                                        f"""
+                                        INSERT INTO {customers} (customer_name, customer_phone_1, customer_phone_2, email)
+                                        VALUES (%s, %s, %s, %s)
+                                        RETURNING customer_id
+                                        """,
+                                        (new_name, new_phone1, new_phone2, new_email)
+                                    )
+                                    customer_id = cursor.fetchone()[0]
+
+                                # Prepare products string
+                                updated_products = ", ".join(
+                                    [f"{item['Type']}:{item['Count']}" for item in (st.session_state.modified_products + st.session_state.new_products)]
+                                )
+
+                                # Calculate total product count
+                                total_count = sum(item["Count"] for item in (st.session_state.modified_products + st.session_state.new_products))
+
+                                # Insert into orders table
+                                cursor.execute(
+                                    f"""
+                                    INSERT INTO {orders} (customer_id, ship_company, region, order_price, order_number, days_to_receive, hoodies, shipping_price, products, order_date, product_prices,Shipping)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)
+                                    """,
+                                    (
+                                        customer_id,
+                                        new_ship_company,
+                                        new_region,
+                                        new_order_price,
+                                        new_order_number,  # No order_number provided yet
+                                        new_days_to_receive,
+                                        total_count,
+                                        new_shipping_price,
+                                        updated_products,
+                                        new_date,
+                                        product_prices,
+                                        new_shipping_price_by_company,
+                                    )
+                                )
+                                cursor.execute(
+                                        f"DELETE FROM {on_hole} WHERE order_number = %s", (search_order_number,)
+                                )
+                                conn.commit()
+                                st.success("✅ Completed order and customer info saved successfully!")
+                                log_action(st.session_state.username, "Add Completed Order", f"Customer: {new_name}, Phone: {new_phone1}")
+                                del st.session_state.modified_products
+                                del st.session_state.new_products
+                        elif order_type=="Cancelled":
+                                cancelled_reason=st.selectbox("Reason",reasons_1)
+                                if st.button("Save Cancelled Order"):
+                                    # First, check if the customer already exists based on phone number
+                                    cursor.execute(
+                                        f"SELECT customer_id FROM {customers} WHERE customer_phone_1 = %s",
+                                        (new_phone1,)
+                                    )
+                                    customer = cursor.fetchone()
+
+                                    if customer:
+                                        customer_id = customer[0]
+                                    else:
+                                        # If not exists, insert new customer
+                                        cursor.execute(
+                                            f"""
+                                            INSERT INTO {customers} (customer_name, customer_phone_1, customer_phone_2, email)
+                                            VALUES (%s, %s, %s, %s)
+                                            RETURNING customer_id
+                                            """,
+                                            (new_name, new_phone1, new_phone2, new_email)
+                                        )
+                                        customer_id = cursor.fetchone()[0]
+
+                                    # Prepare products string
+                                    updated_products = ", ".join(
+                                        [f"{item['Type']}:{item['Count']}" for item in (st.session_state.modified_products + st.session_state.new_products)]
+                                    )
+
+                                    # Calculate total product count
+                                    total_count = sum(item["Count"] for item in (st.session_state.modified_products + st.session_state.new_products))
+
+                                    # Insert into orders table
+                                    cursor.execute(
+                                        f"""
+                                        INSERT INTO {cancelled_orders} (customer_id,region, order_price, order_number, hoodies,reason ,products,order_date)
+                                        VALUES (%s,%s, %s, %s, %s, %s, %s, %s)
+                                        """,
+                                        (
+                                            customer_id,
+                                            new_region,
+                                            new_order_price,
+                                            new_order_number, 
+                                            total_count,
+                                            cancelled_reason,
+                                            updated_products,
+                                            new_date
+                                        )
+                                    )
+                                    cursor.execute(
+                                            f"DELETE FROM {on_hole} WHERE order_number = %s", (search_order_number,)
+                                    )
+                                    conn.commit()
+                                    st.success("✅ cancelled order and customer info saved successfully!")
+                                    log_action(st.session_state.username, "Add cancelled Order", f"Customer: {new_name}, Phone: {new_phone1}")                                
+                                    del st.session_state.modified_products
+                                    del st.session_state.new_products
+                        elif order_type=="Returned":
+                                new_ship_company = st.selectbox("Shipping Company",company)
+                                new_status=st.selectbox("Status",["Go Only","Go And Back"])
+                                new_reason=st.selectbox("Reason",["Customer","Delivery Man","Quality","Size","Team"])
+                                shipping_price = custom_number_input("Shipping Price Paid By Company",value=order_details[7],min_value=0,step=1,key=f"shipping_price_by_company_{order_details[0]}")
+                                customer_shipping_price=custom_number_input("Shipping Price paid by customer", min_value=0,step=1)
+                                if st.button("Save Returned Order"):
+                                    # First, check if the customer already exists based on phone number
+                                    cursor.execute(
+                                        f"SELECT customer_id FROM {customers} WHERE customer_phone_1 = %s",
+                                        (new_phone1,)
+                                    )
+                                    customer = cursor.fetchone()
+
+                                    if customer:
+                                        customer_id = customer[0]
+                                    else:
+                                        # If not exists, insert new customer
+                                        cursor.execute(
+                                            f"""
+                                            INSERT INTO {customers} (customer_name, customer_phone_1, customer_phone_2, email)
+                                            VALUES (%s, %s, %s, %s)
+                                            RETURNING customer_id
+                                            """,
+                                            (new_name, new_phone1, new_phone2, new_email)
+                                        )
+                                        customer_id = cursor.fetchone()[0]
+
+                                    # Prepare products string
+                                    updated_products = ", ".join(
+                                        [f"{item['Type']}:{item['Count']}" for item in (st.session_state.modified_products + st.session_state.new_products)]
+                                    )
+
+                                    # Calculate total product count
+                                    total_count = sum(item["Count"] for item in (st.session_state.modified_products + st.session_state.new_products))
+                                    cursor.execute(
+                                        f"""
+                                        INSERT INTO {returned_orders} (customer_id, ship_company, region, order_number,reason,hoodies,order_price,shipping_price,status,products,order_date,customer_shipping_price)
+                                        VALUES (%s,%s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                        """,
+                                        (
+                                            customer_id,
+                                            new_ship_company,
+                                            new_region,
+                                            new_order_number,
+                                            new_reason,
+                                            total_count,
+                                            new_order_price,
+                                            shipping_price,
+                                            new_status,
+                                            updated_products,
+                                            new_date,
+                                            customer_shipping_price
+                                        )
+                                    )
+                                    cursor.execute(
+                                            f"DELETE FROM {on_hole} WHERE order_number = %s", (search_order_number,)
+                                    )
+                                    conn.commit()
+                                    st.success("✅ Returned order and customer info saved successfully!")
+                                    log_action(st.session_state.username, "Add Returned Order", f"Customer: {new_name}, Phone: {new_phone1}")
+
+                                    del st.session_state.modified_products
+                                    del st.session_state.new_products
+
+
+                        st.subheader("Remove Order")
+                        with st.form("delete_order_form"):
+                            delete_password = st.text_input("Enter Password to Confirm Deletion", type="password")
+                            delete_submit = st.form_submit_button("Delete Order")
+
+                            if delete_submit:
+                                if delete_password == "admin":
+                                    cursor.execute(
+                                        f"DELETE FROM {on_hole} WHERE order_number = %s", (search_order_number,)
+                                    )
+                                    conn.commit()
+                                    st.success("Order deleted successfully!")
+                                    log_action(st.session_state.username, "Delete Completed Order", f"Order ID: {search_order_number}, Customer: {new_name}")
+                                else:
+                                    st.error("Incorrect password. Order deletion canceled.")
+                    else:
+                        st.write("No order found with the given Order Number.")
+                    
+                    conn.close()
+    elif page=='Analysis':
         def metric_card_with_icon(title, content, description,info):
                 st.markdown(
                     f"""
@@ -233,52 +696,52 @@ def orders_management_page():
         col1,col2,col3,col4=st.columns([1,1,1,1])
         conn = create_connection()
         cursor = conn.cursor()
-        total_query = """
+        total_query = f"""
                 SELECT 
                     COALESCE(SUM(o.order_price), 0) AS total_prices
-                FROM orders o
+                FROM {orders} o
                 """
         cursor.execute(total_query)
         total_prices = cursor.fetchone()[0]
 
-        total_cancelled_query = """
+        total_cancelled_query = f"""
                 SELECT 
                     COALESCE(SUM(o.order_price), 0) AS total_prices
-                FROM cancelled_orders o
+                FROM {cancelled_orders} o
                 """
         cursor.execute(total_cancelled_query)
         total_cancelled=cursor.fetchone()[0]
 
 
-        total_returned_query = """
+        total_returned_query = f"""
                 SELECT 
                     COALESCE(SUM(o.order_price), 0) AS total_prices
-                FROM returned_orders o
+                FROM {returned_orders} o
                 """
         cursor.execute(total_returned_query)
         total_returned=cursor.fetchone()[0]
-        total_shipping_returned_query = """
+        total_shipping_returned_query = f"""
             SELECT 
                 COUNT(o.order_number) AS total_orders, 
                 COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_price,
                 COALESCE(SUM(o.shipping_price), 0)AS total_shipping_pricee
-            FROM returned_orders o;
+            FROM {returned_orders} o;
           """
         cursor.execute(total_shipping_returned_query)
         total_returned_orders,total_shipping_returned_price,total_shipping_returned_pricee = cursor.fetchone()
-        total_shipping_problems_query = """
+        total_shipping_problems_query = f"""
             SELECT 
                 COUNT(o.order_number) AS total_orders, 
                 COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_price,
                 COALESCE(SUM(o.shipping_price), 0) AS total_shipping_pricee
-            FROM shipping o;
+            FROM {shipping} o;
           """
         cursor.execute(total_shipping_problems_query)
         total_problem_orders,total_shipping_problem_price,total_shipping_problem_pricee = cursor.fetchone()
-        total_shipping_completed_query = """
+        total_shipping_completed_query = f"""
             SELECT 
-                COALESCE(SUM(o.shipping_price), 0) AS total_shipping_price
-            FROM orders o;
+                COALESCE(SUM(o.Shipping), 0)-COALESCE(SUM(o.shipping_price), 0) AS total_shipping_price
+            FROM {orders} o;
           """
         cursor.execute(total_shipping_completed_query)
         total_shipping_completed_price = cursor.fetchone()[0]
@@ -286,31 +749,31 @@ def orders_management_page():
         total_can_be_gained=total_cancelled+total__profit
         total_profit=total_prices-(total_shipping_problem_pricee+total_shipping_returned_pricee+total_shipping_completed_price)
         total_shipping_price=total_shipping_problem_price+total_shipping_returned_price+total_shipping_completed_price
-        completed_query = """
+        completed_query = f"""
             SELECT 
                 region, 
                 COUNT(order_number) AS total_orders
-            FROM orders
+            FROM {orders}
             GROUP BY region;
         """
         cursor.execute(completed_query)
         completed_data = cursor.fetchall()
 
-        cancelled_query = """
+        cancelled_query = f"""
             SELECT 
                 region, 
                 COUNT(order_number) AS total_orders
-            FROM cancelled_orders
+            FROM {cancelled_orders}
             GROUP BY region;
         """
         cursor.execute(cancelled_query)
         cancelled_data = cursor.fetchall()
 
-        returned_query = """
+        returned_query = f"""
             SELECT 
                 region, 
                 COUNT(order_number) AS total_orders
-            FROM returned_orders
+            FROM {returned_orders}
             GROUP BY region;
         """
         cursor.execute(returned_query)
@@ -328,31 +791,31 @@ def orders_management_page():
         df["Completed (%)"] = (df["Completed"] / df["Total"]) * 100
         df["Cancelled (%)"] = (df["Cancelled"] / df["Total"]) * 100
         df["Returned (%)"] = (df["Returned"] / df["Total"]) * 100
-        completed__query = """
+        completed__query = f"""
             SELECT 
                 ship_company, 
                 COUNT(order_number) AS total_orders
-            FROM orders
+            FROM {orders}
             GROUP BY ship_company;
         """
         cursor.execute(completed__query)
         completed__data = cursor.fetchall()
 
-        problem__query = """
+        problem__query = f"""
             SELECT 
                 ship_company, 
                 COUNT(order_number) AS total_orders
-            FROM shipping
+            FROM {shipping}
             GROUP BY ship_company;
         """
         cursor.execute(problem__query)
         problem__data = cursor.fetchall()
 
-        returned__query = """
+        returned__query = f"""
             SELECT 
                 ship_company, 
                 COUNT(order_number) AS total_orders
-            FROM returned_orders
+            FROM {returned_orders}
             GROUP BY ship_company;
         """
         cursor.execute(returned__query)
@@ -373,33 +836,33 @@ def orders_management_page():
         df_["Returned (%)"] = (df_["Returned"] / df_["Total"]) * 100
 
 
-        completed_date_query = """
+        completed_date_query = f"""
             SELECT 
                 order_date, 
                 COUNT(order_number) AS total_orders
-            FROM orders
+            FROM {orders}
             GROUP BY order_date
             ORDER BY order_date;
         """
         cursor.execute(completed_date_query)
         completed_date_data = cursor.fetchall()
 
-        cancelled_date_query = """
+        cancelled_date_query = f"""
             SELECT 
                 order_date, 
                 COUNT(order_number) AS total_orders
-            FROM cancelled_orders
+            FROM {cancelled_orders}
             GROUP BY order_date
             ORDER BY order_date;
         """
         cursor.execute(cancelled_date_query)
         cancelled_date_data = cursor.fetchall()
 
-        returned_date_query = """
+        returned_date_query = f"""
             SELECT 
                 order_date, 
                 COUNT(order_number) AS total_orders
-            FROM returned_orders
+            FROM {returned_orders}
             GROUP BY order_date
             ORDER BY order_date;
         """
@@ -417,44 +880,44 @@ def orders_management_page():
 
         df_date = df_date.sort_values(by="Date")
 
-        query="""SELECT COUNT(*) AS total_orders
+        query=f"""SELECT COUNT(*) AS total_orders
                     FROM (
-                        SELECT order_number FROM orders
+                        SELECT order_number FROM {orders}
                         UNION ALL
-                        SELECT order_number FROM returned_orders
+                        SELECT order_number FROM {returned_orders}
                         UNION ALL
-                        SELECT order_number FROM shipping
+                        SELECT order_number FROM {shipping}
                     ) AS all_orders;
                     """
         cursor.execute(query)
         total_orders=cursor.fetchone()[0]
-        query = """SELECT SUM(hoodies) AS total_products
+        query = f"""SELECT SUM(hoodies) AS total_products
                 FROM (
-                    SELECT hoodies FROM orders
+                    SELECT hoodies FROM {orders}
                     UNION ALL
-                    SELECT hoodies FROM returned_orders
+                    SELECT hoodies FROM {returned_orders}
                     UNION ALL
-                    SELECT hoodies FROM shipping
+                    SELECT hoodies FROM {shipping}
                 ) AS all_orders;
                 """
         cursor.execute(query)
         total_products = cursor.fetchone()[0]
-        query = """SELECT SUM(o.hoodies) AS total_orders FROM orders o"""
+        query = f"""SELECT SUM(o.hoodies) AS total_orders FROM {orders} o"""
         cursor.execute(query)
         completed_products_count = cursor.fetchone()[0]
-        query = """SELECT Count(o.order_number) AS total_orders FROM orders o"""
+        query = f"""SELECT Count(o.order_number) AS total_orders FROM {orders} o"""
         cursor.execute(query)
         completed_orders_count = cursor.fetchone()[0]
-        total_shipping_price_per_company_query = """
+        total_shipping_price_per_company_query = f"""
             SELECT 
                 ship_company, 
                 COALESCE(SUM(shipping_price - customer_shipping_price), 0) AS total_shipping_price
             FROM (
-                SELECT ship_company, shipping_price, 0 AS customer_shipping_price FROM orders
+                SELECT ship_company, shipping_price, 0 AS customer_shipping_price FROM {orders}
                 UNION ALL
-                SELECT ship_company, shipping_price, customer_shipping_price FROM returned_orders
+                SELECT ship_company, shipping_price, customer_shipping_price FROM {returned_orders}
                 UNION ALL
-                SELECT ship_company, shipping_price, customer_shipping_price  FROM shipping
+                SELECT ship_company, shipping_price, customer_shipping_price  FROM {shipping}
             ) AS combined_data
             GROUP BY ship_company
             ORDER BY total_shipping_price DESC;
@@ -462,16 +925,16 @@ def orders_management_page():
          """
         cursor.execute(total_shipping_price_per_company_query)
         df_shipping_price_per_company = pd.DataFrame(cursor.fetchall(), columns=["ship_company", "total_shipping_price"])
-        total_orders_per_company_query = """
+        total_orders_per_company_query = f"""
             SELECT 
                 ship_company, 
                 COUNT(*) AS total_orders
             FROM (
-                SELECT ship_company FROM orders
+                SELECT ship_company FROM {orders}
                 UNION ALL
-                SELECT ship_company FROM returned_orders
+                SELECT ship_company FROM {returned_orders}
                 UNION ALL
-                SELECT ship_company FROM shipping
+                SELECT ship_company FROM {shipping}
             ) AS combined_data
             GROUP BY ship_company
             ORDER BY total_orders DESC;
@@ -479,11 +942,11 @@ def orders_management_page():
          """
         cursor.execute(total_orders_per_company_query)
         df_orders_per_company = pd.DataFrame(cursor.fetchall(), columns=["ship_company", "total_orders"])
-        shipping_company_query_products = """
+        shipping_company_query_products = f"""
                 SELECT 
                     o.ship_company AS Shipping_Company,
                     SUM(o.hoodies) AS Total_Products
-                FROM orders o
+                FROM {orders} o
                 GROUP BY o.ship_company
                 ORDER BY Total_Products DESC
                 """
@@ -512,19 +975,7 @@ def orders_management_page():
                     shipping_price_walid = result_1.values[0] / result_2.values[0]
             else:
                 shipping_price = 0
-            metric_card_with_icon(
-                        "Avg Shipping Price(product)SALAH", 
-                        f"{shipping_price_walid:.2f}","",
-                        "The average cost of shipping for all products."
-                    )
-            
-            st.markdown("")
-            metric_card_with_icon(
-                "Average Price Per Product", 
-                f"{int(total_profit / completed_products_count):,}".replace(",", "."), 
-                "", 
-                "Average Total Profit per Product"
-            )
+
         with col2:
             metric_card_with_icon(
                             "Total Profit", 
@@ -538,6 +989,7 @@ def orders_management_page():
                 "", 
                 "Average Total Price per Order"
             )
+
             st.markdown("")
             result_1 = df_shipping_price_per_company[
             df_shipping_price_per_company["ship_company"] == "SALAH"]["total_shipping_price"]
@@ -547,12 +999,6 @@ def orders_management_page():
                     shipping_price_shipblu = result_1.values[0] / result_2.values[0]
             else:
                 shipping_price = 0
-            metric_card_with_icon(
-                        "Avg Shipping Price(order)SALAH", 
-                        f"{shipping_price_shipblu:.2f}","",
-                        "The average cost of shipping for all products."
-                    ) 
-
         with col3:
             metric_card_with_icon(
                             "Profit could have been achieved", 
@@ -568,11 +1014,6 @@ def orders_management_page():
                     shipping_price_walid = result_1.values[0] / result_2.values[0]
             else:
                 shipping_price = 0
-            metric_card_with_icon(
-                        "Avg Shipping Price(product)SHIPBLU", 
-                        f"{shipping_price_walid:.2f}","",
-                        "The average cost of shipping for all products."
-                    )
             st.markdown("")
             result_1 = df_shipping_price_per_company[
             df_shipping_price_per_company["ship_company"] == "SHIPBLU"]["total_shipping_price"]
@@ -582,18 +1023,7 @@ def orders_management_page():
                     shipping_price_shipblu = result_1.values[0] / result_2.values[0]
             else:
                 shipping_price = 0
-            metric_card_with_icon(
-                        "Avg Shipping Price(order)SHIPBLU", 
-                        f"{shipping_price_shipblu:.2f}","",
-                        "The average cost of shipping for all products."
-                    ) 
         with col4:
-            metric_card_with_icon(
-                            " AVG Shipping Price per Product", 
-                            f"{int(total_shipping_price/completed_products_count):,}".replace(",", "."),"",
-                            "Total Shipping Price divide by total products"
-                        )
-            st.markdown("")
             result_1 = df_shipping_price_per_company[
             df_shipping_price_per_company["ship_company"] == "BOSTA"]["total_shipping_price"]
             result_2=df_shipping_products[
@@ -602,12 +1032,6 @@ def orders_management_page():
                     shipping_price_walid = result_1.values[0] / result_2.values[0]
             else:
                 shipping_price = 0
-            metric_card_with_icon(
-                        "Avg Shipping Price(product)BOSTA", 
-                        f"{shipping_price_walid:.2f}","",
-                        "The average cost of shipping for all products."
-                    )
-            st.markdown("")
             result_1 = df_shipping_price_per_company[
             df_shipping_price_per_company["ship_company"] == "BOSTA"]["total_shipping_price"]
             result_2=df_orders_per_company[
@@ -617,11 +1041,11 @@ def orders_management_page():
             else:
                 shipping_price = 0
             metric_card_with_icon(
-                        "Avg Shipping Price(order)BOSTA", 
-                        f"{shipping_price_shipblu:.2f}","",
-                        "The average cost of shipping for all products."
-                    ) 
-
+                "Average Price Per Product", 
+                f"{int(total_profit / completed_products_count):,}".replace(",", "."), 
+                "", 
+                "Average Total Profit per Product"
+            )
         fig = go.Figure()
 
         fig.add_trace(go.Bar(
@@ -682,7 +1106,38 @@ def orders_management_page():
         )
 
         st.plotly_chart(fig,use_container_width=True)
+        # fig = go.Figure()
+        # fig.add_trace(go.Scatter(
+        #     x=df_date["Date"],
+        #     y=df_date["Completed"],
+        #     mode="lines",
+        #     name="Completed",
+        #     line=dict(color="green", width=2)
+        # ))
+        # fig.add_trace(go.Scatter(
+        #     x=df_date["Date"],
+        #     y=df_date["Cancelled"],
+        #     mode="lines",
+        #     name="Cancelled",
+        #     line=dict(color="red", width=2, dash="dash")
+        # ))
+        # fig.add_trace(go.Scatter(
+        #     x=df_date["Date"],
+        #     y=df_date["Returned"],
+        #     mode="lines",
+        #     name="Returned",
+        #     line=dict(color="orange", width=2, dash="dot")
+        # ))
 
+        # fig.update_layout(
+        #     title="Number of Orders Over Time by Status",
+        #     xaxis_title="Date",
+        #     yaxis_title="Number of Orders",
+        #     template="plotly_white",
+        #     legend_title="Order Status"
+        # )
+
+        # st.plotly_chart(fig,use_container_width=True)
     elif page=="Customers":
         st.markdown("<h1 style='text-align: center; color: #FF4B4B; margin-top: -60px; '>🧑Customers</h1>", unsafe_allow_html=True)
         st.markdown("") 
@@ -694,7 +1149,7 @@ def orders_management_page():
         conn = create_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM customers")
+        cursor.execute(f"SELECT * FROM {customers}")
         customers = cursor.fetchall()
         conn.close()
         
@@ -729,15 +1184,15 @@ def orders_management_page():
         st.markdown("")
         conn = create_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM activity_log ORDER BY timestamp DESC")
+        cursor.execute(f"SELECT * FROM activity_log ORDER BY timestamp DESC")
         logs = cursor.fetchall()
         conn.close()
         
         columns = ["Order iD", "Employee", "Action", "Timestamp", "Details"]
         logs_df = pd.DataFrame(logs, columns=columns)
         logs_df.drop("Order iD",axis=1,inplace=True)
-        logs_df["Timestamp"] = pd.to_datetime(logs_df["Timestamp"])
-        utc_zone = pytz.utc
+        logs_df["Timestamp"] = pd.to_datetime(logs_df["Timestamp"]) 
+        utc_zone = pytz.utc 
         cairo_zone = pytz.timezone("Africa/Cairo")
         logs_df["Timestamp"] = logs_df["Timestamp"].dt.tz_localize(utc_zone).dt.tz_convert(cairo_zone)
         st.dataframe(logs_df) 
@@ -846,29 +1301,42 @@ def orders_management_page():
                     st.session_state.order_products = []
                 if "product_count" not in st.session_state:
                     st.session_state.product_count = 1 
+
                 col1, col2 = st.columns([1, 1])
-                col_1, col_2,col_3= st.columns([1,1,25])
+                col_1, col_2, col_3 = st.columns([1, 1, 25])
+
                 with col_1:
                     if st.button("➕"):
                         st.session_state.product_count += 1
                 with col_2:
-                    if st.button("➖"):
+                    if st.button("➖") and st.session_state.product_count > 1:
                         st.session_state.product_count -= 1
                         st.session_state.order_products.pop()
+
                 for i in range(st.session_state.product_count):
-                    with col1:
+                    col_type, col_count, col_price = st.columns([3, 2, 2])
+                    
+                    with col_type:
                         type_of_product = st.selectbox(f"Type {i+1}", products, key=f"type_{i}")
-                    with col2:
+                    with col_count:
                         count_of_product = custom_number_input(
                             f"Count {i+1}", min_value=0, step=1, key=f"count_{i}"
+                        )
+                    with col_price:
+                        price_of_product = custom_number_input(
+                            f"Price {i+1}", min_value=0.0, step=0.1, key=f"price_{i}"
                         )
 
                     if len(st.session_state.order_products) <= i:
                         st.session_state.order_products.append(
-                            {"Type": type_of_product, "Count": count_of_product}
+                            {"Type": type_of_product, "Count": count_of_product, "Price": price_of_product}
                         )
                     else:
-                        st.session_state.order_products[i] = {"Type": type_of_product, "Count": count_of_product}
+                        st.session_state.order_products[i] = {
+                            "Type": type_of_product,
+                            "Count": count_of_product,
+                            "Price": price_of_product
+                        }
 
                 order_price = custom_number_input("Order Price", min_value=0, step=1)
                 order_date = st.date_input("Order Date")
@@ -906,17 +1374,17 @@ def orders_management_page():
                         conn = create_connection()
                         cursor = conn.cursor()
                         cursor.execute(
-                            "SELECT 1 FROM orders WHERE order_number = %s",
+                            f"SELECT 1 FROM {orders} WHERE order_number = %s",
                             (order_number,)
                         )
                         existing_order = cursor.fetchone()
                         cursor.execute(
-                            "SELECT 1 FROM cancelled_orders WHERE order_number = %s",
+                            f"SELECT 1 FROM {cancelled_orders} WHERE order_number = %s",
                             (order_number,)
                         )
                         existing_order_1 = cursor.fetchone()
                         cursor.execute(
-                            "SELECT 1 FROM returned_orders WHERE order_number = %s",
+                            f"SELECT 1 FROM {returned_orders} WHERE order_number = %s",
                             (order_number,)
                         )
                         existing_order_2 = cursor.fetchone()
@@ -928,7 +1396,7 @@ def orders_management_page():
                             st.error("Order Number already exists in Returned Orders. Please enter a unique Order Number.")
                         else:
                             cursor.execute(
-                                "SELECT customer_id FROM customers WHERE customer_phone_1 = %s",
+                                f"SELECT customer_id FROM {customers} WHERE customer_phone_1 = %s",
                                 (corrected_phone_1,)
                             )
                             customer = cursor.fetchone()
@@ -937,15 +1405,16 @@ def orders_management_page():
                                 customer_id = customer[0]
                             else:
                                 cursor.execute(
-                                    "INSERT INTO customers (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
+                                    f"INSERT INTO {customers} (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
                                     (customer_name, corrected_phone_1, corrected_phone_2, email)
                                 )
                                 customer_id = cursor.fetchone()[0]
                             total_count = sum(item["Count"] for item in st.session_state.order_products)
                             products_string = ", ".join([f"{item['Type']}:{item['Count']}" for item in st.session_state.order_products])
+                            products_prices = ", ".join([f"{item['Type']}:{item['Price']}" for item in st.session_state.order_products])
                             cursor.execute(
-                                "INSERT INTO orders (customer_id, ship_company, region, order_price, order_number,days_to_receive,hoodies,shipping_price,products,order_date) VALUES (%s, %s, %s, %s, %s,%s,%s,%s,%s,%s)",
-                                (customer_id, ship_company, region, order_price, order_number,days_to_receive,total_count,shipping_price,products_string,order_date)
+                                f"INSERT INTO {orders} (customer_id, ship_company, region, order_price, order_number,days_to_receive,hoodies,shipping_price,products,order_date,product_prices) VALUES (%s, %s, %s, %s, %s,%s,%s,%s,%s,%s,%s)",
+                                (customer_id, ship_company, region, order_price, order_number,days_to_receive,total_count,shipping_price,products_string,order_date,products_prices)
                             )
 
                             conn.commit()
@@ -978,7 +1447,7 @@ def orders_management_page():
                     f"""
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                         c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies,o.shipping_price,o.products,o.order_date
-                    FROM orders o
+                    FROM {orders} o
                     INNER JOIN customers c ON o.customer_id = c.customer_id
                     WHERE {search_condition}
                     """,
@@ -1007,7 +1476,7 @@ def orders_management_page():
             
             conn = create_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT DISTINCT ship_company FROM orders")
+            cursor.execute(f"SELECT DISTINCT ship_company FROM {orders}")
             ship_companies = [row[0] for row in cursor.fetchall()]
             selected_ship_company = st.selectbox("Filter by Shipping Company", ["All"] + ship_companies)
             sort_column = "CAST(o.order_number AS INTEGER)" if sort_by == "Order Code" else "o.order_price"
@@ -1015,8 +1484,8 @@ def orders_management_page():
             
             query = f"""
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
-                c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies,o.shipping_price,o.products,o.order_date
-            FROM orders o
+                c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies,o.shipping_price,o.products,o.order_date,o.product_prices,o.Shipping
+            FROM {orders} o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
             if selected_ship_company != "All":
@@ -1026,11 +1495,11 @@ def orders_management_page():
             cursor.execute(query)
             all_orders = cursor.fetchall()
 
-            total_query = "SELECT COUNT(*),COALESCE(SUM(hoodies),0), COALESCE(SUM(order_price), 0), COALESCE(SUM(shipping_price), 0) FROM orders"
+            total_query = f"SELECT COUNT(*),COALESCE(SUM(hoodies),0), COALESCE(SUM(order_price), 0), COALESCE(SUM(shipping_price), 0),COALESCE(SUM(Shipping), 0) FROM {orders}"
             if selected_ship_company != "All":
                 total_query += f" WHERE ship_company = '{selected_ship_company}'"
             cursor.execute(total_query)
-            total_orders,total_hoodies,total_price,total_shipping_price = cursor.fetchone()
+            total_orders,total_hoodies,total_price,total_shipping_price,total_shipping_price_company = cursor.fetchone()
 
             conn.close()
 
@@ -1047,10 +1516,12 @@ def orders_management_page():
                         "Shipping Company": order[5],
                         "Region": order[6],
                         "Order Price": f"{order[7]}",
-                        "Shipping Price":order[10],
+                        "Shipping Price By Customer":order[10],
+                        "Shipping Price By Company":order[14],
                         "Order Profit": (order[7] or 0) - (order[10] or 0),
                         "Days to Receive":order[8],
                         "Type of products":order[11],
+                        "price of products":order[13],
                         "Total number of Products":order[9],
                     })
                 df = pd.DataFrame(data)
@@ -1058,7 +1529,7 @@ def orders_management_page():
                 st.dataframe(df)
                 st.write(f"**Total Orders:** {total_orders}")
                 st.write(f"**Total Price:** {int(total_price):,}".replace(",", "."))
-                st.write(f"**Total Shipping Price:** {int(total_shipping_price):,}".replace(",", "."))
+                st.write(f"**Total Shipping Price:** {int(total_shipping_price_company)-int(total_shipping_price):,}".replace(",", "."))
                 total_order_profit = df["Order Profit"].sum()
                 st.write(f"**Total Order Profit:** {int(total_order_profit):,}".replace(",", "."))
                 st.write(f"**Total Products:** {total_hoodies}")
@@ -1148,10 +1619,10 @@ def orders_management_page():
                     cursor = conn.cursor()
                     
                     cursor.execute(
-                        """
+                        f"""
                         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
                             c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies,o.shipping_price,o.order_date,o.products
-                        FROM orders o
+                        FROM {orders} o
                         INNER JOIN customers c ON o.customer_id = c.customer_id
                         WHERE o.order_number = %s
                         """,
@@ -1229,12 +1700,12 @@ def orders_management_page():
                                 [f"{item['Type']}:{item['Count']}" for item in (st.session_state.modified_products + st.session_state.new_products)]
                             )
                             cursor.execute(
-                                """
-                                UPDATE customers
+                                f"""
+                                UPDATE {customers}
                                 SET customer_name = %s, customer_phone_1 = %s, customer_phone_2 = %s, email = %s
                                 WHERE customer_id = (
                                     SELECT customer_id 
-                                    FROM orders 
+                                    FROM {orders} 
                                     WHERE order_number = %s
                                 )
                                 """,
@@ -1242,8 +1713,8 @@ def orders_management_page():
                             )
                             
                             cursor.execute(
-                                """
-                                UPDATE orders
+                                f"""
+                                UPDATE {orders}
                                 SET ship_company = %s, region = %s, order_price = %s, days_to_receive = %s,
                                     hoodies = %s, shipping_price = %s, products = %s, order_date = %s
                                 WHERE order_number = %s
@@ -1268,7 +1739,7 @@ def orders_management_page():
                             if delete_submit:
                                 if delete_password == "admin":
                                     cursor.execute(
-                                        "DELETE FROM orders WHERE order_number = %s", (search_order_number,)
+                                        f"DELETE FROM {orders} WHERE order_number = %s", (search_order_number,)
                                     )
                                     conn.commit()
                                     st.success("Order deleted successfully!")
@@ -1301,8 +1772,8 @@ def orders_management_page():
                         SUM(o.hoodies) AS total_products,
                         SUM(o.shipping_price) AS total_shipping,
                         ROUND(AVG(CAST(o.days_to_receive AS NUMERIC)), 2) AS avg_days_to_receive
-                    FROM customers c
-                    INNER JOIN orders o ON c.customer_id = o.customer_id
+                    FROM {customers} c
+                    INNER JOIN {orders} o ON c.customer_id = o.customer_id
                     GROUP BY c.customer_name, c.customer_phone_1, c.email
                     HAVING COUNT(o.order_number) > 1
                     ORDER BY {sort_column} {sort_direction}
@@ -1375,17 +1846,17 @@ def orders_management_page():
                     SUM(o.order_price) AS total_price,
                     SUM(o.shipping_price) AS total_shipping,
                     STRING_AGG(o.products, ', ') AS product_details
-                FROM customers c
-                INNER JOIN orders o ON c.customer_id = o.customer_id
+                FROM {customers} c
+                INNER JOIN {orders} o ON c.customer_id = o.customer_id
                 GROUP BY c.customer_name, c.customer_phone_1, c.email
                 ORDER BY {sort_column} {sort_direction}
                 """
             cursor.execute(query)
             consolidated_orders = cursor.fetchall()
 
-            total_query = """
+            total_query = f"""
             SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0),COALESCE(SUM(o.shipping_price), 0)
-            FROM orders o
+            FROM {orders} o
             """
             cursor.execute(total_query)
             total_orders,total_products, total_prices, total_shipping_prices = cursor.fetchone()
@@ -1504,11 +1975,11 @@ def orders_management_page():
 
 
         elif selected_3 == "Delete Orders":
-            query = """
+            query = f"""
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email, o.ship_company, o.region, o.order_price, o.days_to_receive, 
                 o.hoodies, o.shipping_price, o.order_date
-            FROM orders o
+            FROM {orders} o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
             
@@ -1573,7 +2044,7 @@ def orders_management_page():
                             if len(orders_tuple) == 1:
                                 orders_tuple = (orders_tuple[0],)
 
-                            delete_query = "DELETE FROM orders WHERE order_number IN %s"
+                            delete_query = f"DELETE FROM {orders} WHERE order_number IN %s"
                             try:
                                 with create_connection() as conn:
                                     cursor = conn.cursor()
@@ -1608,23 +2079,23 @@ def orders_management_page():
             conn = create_connection()
             cursor = conn.cursor()
 
-            total_query = """
+            total_query = f"""
                 SELECT 
                     COUNT(o.order_number) AS total_orders, 
                     COALESCE(SUM(o.hoodies), 0) AS total_products,
                     COALESCE(SUM(o.order_price), 0) AS total_prices,
                     COALESCE(SUM(o.shipping_price), 0) AS total_shipping_prices
-                FROM orders o
+                FROM {orders} o
                 """
             cursor.execute(total_query)
             total_orders, total_products, total_prices, total_shipping_prices = cursor.fetchone()
 
             total_profit = total_prices - total_shipping_prices
-            query = """
+            query = f"""
                 SELECT 
                     o.region, 
                     COUNT(o.order_number) AS total_orders 
-                FROM orders o
+                FROM {orders} o
                 GROUP BY o.region
                 ORDER BY total_orders DESC
                 """
@@ -1633,20 +2104,20 @@ def orders_management_page():
             df = pd.DataFrame(data, columns=["Region", "Total Orders"])
             total_orders_region = df['Total Orders'].sum()
             df['Percentage'] = (df['Total Orders'] / total_orders_region) * 100
-            metrics_query = """
+            metrics_query = f"""
                     SELECT 
                         COALESCE(AVG(o.shipping_price::NUMERIC), 0) AS avg_shipping_price,
                         COALESCE(AVG(o.days_to_receive::NUMERIC), 0) AS avg_days_to_receive
-                    FROM orders o
+                    FROM {orders} o
                 """
             cursor.execute(metrics_query)
             avg_shipping_price,avg_day_to_receive = cursor.fetchone()
             
-            shipping_company_query = """
+            shipping_company_query = f"""
                 SELECT 
                     o.ship_company AS Shipping_Company,
                     COUNT(o.order_number) AS Total_Orders
-                FROM orders o
+                FROM {orders} o
                 GROUP BY o.ship_company
                 ORDER BY Total_Orders DESC
                 """
@@ -1655,34 +2126,34 @@ def orders_management_page():
             df_shipping = pd.DataFrame(shipping_data, columns=["Shipping Company", "Total Orders"])
             total_orders_shipping = df_shipping['Total Orders'].sum()
             df_shipping['Percentage'] = (df_shipping['Total Orders'] / total_orders_shipping) * 100
-            total_cancelled_query="""
+            total_cancelled_query=f"""
             SELECT
                 COUNT(o.order_number) AS total_orders
-            FROM cancelled_orders o
+            FROM {cancelled_orders} o
             """
             cursor.execute(total_cancelled_query)
             total_cancelled=cursor.fetchone()[0]
-            total_returned_query="""
+            total_returned_query=f"""
             SELECT
                 COUNT(o.order_number) AS total_orders
-            FROM returned_orders o
+            FROM {returned_orders} o
             """
             cursor.execute(total_returned_query)
             total_returned=cursor.fetchone()[0]
-            total_shipping_query="""
+            total_shipping_query=f"""
             SELECT
                 COUNT(o.order_number) AS total_orders
-            FROM shipping o
+            FROM {shipping} o
             """
             cursor.execute(total_shipping_query)
             total_shipping=cursor.fetchone()[0]
             
-            date_query = """
+            date_query = f"""
                             SELECT 
                             o.order_date, 
                             COUNT(o.order_number) AS total_orders,
                             SUM(o.order_price) AS total_sales
-                        FROM orders o
+                        FROM {orders} o
                         GROUP BY o.order_date
                         ORDER BY o.order_date
                       """
@@ -1696,12 +2167,12 @@ def orders_management_page():
                 products_dict = {item[0].strip(): int(item[1]) for item in product_items}
                 return products_dict
 
-            query = """
+            query = f"""
             SELECT 
                 o.order_number,
                 o.products,
                 o.shipping_price
-            FROM orders o
+            FROM {orders} o
             """
             cursor.execute(query)
             data = cursor.fetchall()
@@ -1725,45 +2196,41 @@ def orders_management_page():
             df__shipping = df__shipping.sort_values(by="Total Shipping Price", ascending=False)
             total_orders_shipping = df__shipping['Total Shipping Price'].sum()
             df__shipping['Percentage'] = (df__shipping['Total Shipping Price'] / total_orders_shipping) * 100
-            query = """
+            query = f"""
             SELECT 
                 o.order_number,
                 o.products,
                 o.shipping_price,
-                o.order_price
-            FROM orders o
+                o.order_price,
+                o.product_prices
+            FROM {orders} o
             """
             cursor.execute(query)
             data = cursor.fetchall()
 
-            product_prices = {
-                "Hoodie": 850,
-                "Quarter Zipper": 800,
-                "Acid Washed Hoodie":900,
-                "Sweatpants":700,
-                "default": 750  
-            }
+            def parse_products(products_str):
+                return {item.split(":")[0].strip(): int(item.split(":")[1]) for item in products_str.split(",")}
 
-            total_product_prices = {} 
-            total_product_counts = {}  
+            def parse_prices(prices_str):
+                return {item.split(":")[0].strip(): float(item.split(":")[1]) for item in prices_str.split(",")}
+
+            total_product_prices = {}
+            total_product_counts = {}
 
             for order in data:
-                order_number, products_str, total_shipping_price, total_order_price = order
-                if not products_str:
-                    continue  
+                order_number, products_str, total_shipping_price, total_order_price, product_prices_str = order
+                if not products_str or not product_prices_str:
+                    continue
 
-                products_dict = parse_products(products_str)  # Extract product quantities
+                products_dict = parse_products(products_str)  # e.g. {"T-Shirt": 1, "Dxlr T-Shirt": 2}
+                prices_dict = parse_prices(product_prices_str)  # e.g. {"T-Shirt": 750.00, "Dxlr T-Shirt": 780.00}
 
-                if len(products_dict) == 1:  
-                    product_type = list(products_dict.keys())[0]
-                    total_product_prices[product_type] = total_product_prices.get(product_type, 0) + total_order_price
-                    total_product_counts[product_type] = total_product_counts.get(product_type, 0) + sum(products_dict.values())
-                else:
-                    for product_type, quantity in products_dict.items():
-                        unit_price = product_prices.get(product_type.lower(), product_prices["default"])
-                        total_price_for_product = unit_price * quantity
-                        total_product_prices[product_type] = total_product_prices.get(product_type, 0) + total_price_for_product
-                        total_product_counts[product_type] = total_product_counts.get(product_type, 0) + quantity
+                for product_type, quantity in products_dict.items():
+                    price_per_unit = prices_dict.get(product_type, 0)
+                    total_price_for_product = price_per_unit * quantity
+
+                    total_product_prices[product_type] = total_product_prices.get(product_type, 0) + total_price_for_product
+                    total_product_counts[product_type] = total_product_counts.get(product_type, 0) + quantity
 
             df_total_prices = pd.DataFrame(list(total_product_prices.items()), columns=["Product Type", "Total Price"])
             df_total_prices["Total Quantity"] = df_total_prices["Product Type"].map(total_product_counts)
@@ -1772,10 +2239,11 @@ def orders_management_page():
 
             total_prices_sum = df_total_prices["Total Price"].sum()
             df_total_prices["Percentage"] = (df_total_prices["Total Price"] / total_prices_sum) * 100
-            query = """
+
+            query = f"""
             SELECT 
                 o.products
-            FROM orders o
+            FROM {orders} o
             """
 
             cursor.execute(query)
@@ -1803,15 +2271,15 @@ def orders_management_page():
             df_total_counts = df_total_counts.sort_values(by="Total Quantity", ascending=False)
             total_countsss = df_total_counts['Total Quantity'].sum()
             df_total_counts['Percentage'] = (df_total_counts['Total Quantity'] / total_countsss) * 100
-            query = """
+            query = f"""
                     WITH product_orders AS (
                         SELECT
                             o.order_number,
                             TRIM(SPLIT_PART(regexp_split_to_table(o.products, ','), ':', 1)) AS product_name
-                        FROM orders o
+                        FROM {orders} o
                     ),
                     distinct_orders AS (
-                        SELECT COUNT(DISTINCT order_number) AS total_orders FROM orders
+                        SELECT COUNT(DISTINCT order_number) AS total_orders FROM {orders}
                     )
                     SELECT 
                         product_name,
@@ -1824,19 +2292,19 @@ def orders_management_page():
 
                     """
             df_products_percentage = pd.read_sql(query, conn)
-            total_shipping_query = """
+            total_shipping_query = f"""
                 SELECT ship_company, 
                     SUM(shipping_price) AS total_shipping_price
-                FROM orders
+                FROM {orders}
                 GROUP BY ship_company
                 ORDER BY total_shipping_price DESC
             """
             df_shippingprice_byshippcompany_foreachproduct = pd.read_sql_query(total_shipping_query, conn)  
-            shipping_company_query_products = """
+            shipping_company_query_products = f"""
                 SELECT 
                     o.ship_company AS Shipping_Company,
                     SUM(o.hoodies) AS Total_Products
-                FROM orders o
+                FROM {orders} o
                 GROUP BY o.ship_company
                 ORDER BY Total_Products DESC
                 """
@@ -2196,17 +2664,17 @@ def orders_management_page():
                         cursor = conn.cursor()
 
                         cursor.execute(
-                            "SELECT 1 FROM cancelled_orders WHERE order_number = %s",
+                            f"SELECT 1 FROM {cancelled_orders} WHERE order_number = %s",
                             (order_number,)
                         )
                         existing_order = cursor.fetchone()
                         cursor.execute(
-                            "SELECT 1 FROM orders WHERE order_number = %s",
+                            f"SELECT 1 FROM {orders} WHERE order_number = %s",
                             (order_number,)
                         )
                         existing_order_1 = cursor.fetchone()
                         cursor.execute(
-                            "SELECT 1 FROM returned_orders WHERE order_number = %s",
+                            f"SELECT 1 FROM {returned_orders} WHERE order_number = %s",
                             (order_number,)
                         )
                         existing_order_2 = cursor.fetchone()
@@ -2218,7 +2686,7 @@ def orders_management_page():
                             st.error("Order Number already exists in Returned Orders. Please enter a unique Order Number.")
                         else:
                             cursor.execute(
-                                "SELECT customer_id FROM customers WHERE customer_phone_1 = %s",
+                                f"SELECT customer_id FROM {customers} WHERE customer_phone_1 = %s",
                                 (corrected_phone_1,)
                             )
                             customer = cursor.fetchone()
@@ -2227,14 +2695,14 @@ def orders_management_page():
                                 customer_id = customer[0]
                             else:
                                 cursor.execute(
-                                    "INSERT INTO customers (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
+                                    f"INSERT INTO {customers} (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
                                     (customer_name, corrected_phone_1, corrected_phone_2, corrected_email)
                                 )
                                 customer_id = cursor.fetchone()[0]
                             total_count = sum(item["Count"] for item in st.session_state.order_products)
                             products_string = ", ".join([f"{item['Type']}:{item['Count']}" for item in st.session_state.order_products])
-                            cursor.execute( """
-                                                INSERT INTO cancelled_orders 
+                            cursor.execute( f"""
+                                                INSERT INTO {cancelled_orders} 
                                                 (customer_id, region, order_number,reason,hoodies,order_price,order_date,products) 
                                                 VALUES (%s, %s, %s,%s,%s,%s,%s,%s)
                                                 """,
@@ -2268,7 +2736,7 @@ def orders_management_page():
                     f"""
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                         c.email,o.region,o.reason,o.products,o.hoodies,o.order_price,o.order_date
-                    FROM cancelled_orders o
+                    FROM {cancelled_orders} o
                     INNER JOIN customers c ON o.customer_id = c.customer_id
                     WHERE {search_condition}
                     """,
@@ -2296,17 +2764,17 @@ def orders_management_page():
             query = f"""
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email,o.region,o.reason,o.hoodies,o.order_price,o.order_date,o.products
-            FROM cancelled_orders o
+            FROM {cancelled_orders} o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
             query += f" ORDER BY {sort_column} {sort_direction}"
             
             cursor.execute(query)
             all_orders = cursor.fetchall()
-            total_query = "COALESCE(SUM(hoodies),0), COALESCE(SUM(order_price), 0) FROM orders"
-            total_query = """
+            total_query = f"COALESCE(SUM(hoodies),0), COALESCE(SUM(order_price), 0) FROM {orders}"
+            total_query = f"""
             SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0)
-            FROM cancelled_orders o
+            FROM {cancelled_orders} o
             """
             cursor.execute(total_query)
             total_orders,total_products, total_price = cursor.fetchone()
@@ -2407,10 +2875,10 @@ def orders_management_page():
                     cursor = conn.cursor()
                     
                     cursor.execute(
-                        """
+                        f"""
                         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
                             c.email, o.region,o.reason,o.hoodies,o.order_price,o.order_date,o.products
-                        FROM cancelled_orders o
+                        FROM {cancelled_orders} o
                         INNER JOIN customers c ON o.customer_id = c.customer_id
                         WHERE o.order_number = %s
                         """,
@@ -2488,12 +2956,12 @@ def orders_management_page():
                                         [f"{item['Type']}:{item['Count']}" for item in (st.session_state.re_modified_products + st.session_state.re_new_products)]
                                     )
                                 cursor.execute(
-                                    """
-                                    UPDATE customers
+                                    f"""
+                                    UPDATE {customers}
                                     SET customer_name = %s, customer_phone_1 = %s, customer_phone_2 = %s, email = %s
                                     WHERE customer_id = (
                                         SELECT customer_id 
-                                        FROM cancelled_orders 
+                                        FROM {cancelled_orders} 
                                         WHERE order_number = %s
                                     )
                                     """,
@@ -2501,8 +2969,8 @@ def orders_management_page():
                                 )
                                 
                                 cursor.execute(
-                                    """
-                                    UPDATE cancelled_orders
+                                    f"""
+                                    UPDATE {cancelled_orders}
                                     SET region = %s,reason=%s,hoodies=%s,order_price=%s,order_date=%s,products=%s
                                     WHERE order_number = %s
                                     """,
@@ -2523,7 +2991,7 @@ def orders_management_page():
                             if delete_submit:
                                 if delete_password == "admin":
                                     cursor.execute(
-                                        "DELETE FROM cancelled_orders WHERE order_number = %s", (search_order_number,)
+                                        f"DELETE FROM {cancelled_orders} WHERE order_number = %s", (search_order_number,)
                                     )
                                     conn.commit()
                                     st.success("Order deleted successfully!")
@@ -2534,10 +3002,10 @@ def orders_management_page():
                             st.write("No order found with the given Order Number.")
                     conn.close()
         elif selected_2=="Delete Orders":
-            query = """
+            query = f"""
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email,o.region,o.reason,o.hoodies,o.order_price,o.order_date,o.products
-            FROM cancelled_orders o
+            FROM {cancelled_orders} o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
             
@@ -2600,7 +3068,7 @@ def orders_management_page():
                             if len(orders_tuple) == 1:
                                 orders_tuple = (orders_tuple[0],)
 
-                            delete_query = "DELETE FROM cancelled_orders WHERE order_number IN %s"
+                            delete_query = f"DELETE FROM {cancelled_orders} WHERE order_number IN %s"
                             try:
                                 with create_connection() as conn:
                                     cursor = conn.cursor()
@@ -2635,53 +3103,53 @@ def orders_management_page():
             conn = create_connection()
             cursor = conn.cursor()
 
-            total_query = """
+            total_query = f"""
                 SELECT 
                     COUNT(o.order_number) AS total_orders, 
                     COALESCE(SUM(o.hoodies), 0) AS total_products,
                     COALESCE(SUM(o.order_price), 0) AS total_prices
-                FROM cancelled_orders o
+                FROM {cancelled_orders} o
                 """
             cursor.execute(total_query)
             total_orders, total_products, total_prices= cursor.fetchone()
 
-            query = """
+            query = f"""
                 SELECT 
                     o.region, 
                     COUNT(o.order_number) AS total_orders 
-                FROM cancelled_orders o
+                FROM {cancelled_orders} o
                 GROUP BY o.region
                 ORDER BY total_orders DESC
                 """
             cursor.execute(query)
             data = cursor.fetchall()
             df = pd.DataFrame(data, columns=["Region", "Total Orders"])
-            total_completed_query="""
+            total_completed_query=f"""
             SELECT
                 COUNT(o.order_number) AS total_orders
-            FROM orders o
+            FROM {orders} o
             """
             cursor.execute(total_completed_query)
             total_completed=cursor.fetchone()[0]
-            total_returned_query="""
+            total_returned_query=f"""
             SELECT
                 COUNT(o.order_number) AS total_orders
-            FROM returned_orders o
+            FROM {returned_orders} o
             """
             cursor.execute(total_returned_query)
             total_returned=cursor.fetchone()[0]
-            total_shipping_query="""
+            total_shipping_query=f"""
             SELECT
                 COUNT(o.order_number) AS total_orders
-            FROM shipping o
+            FROM {shipping} o
             """
             cursor.execute(total_shipping_query)
             total_shipping=cursor.fetchone()[0]
-            reason_query = """
+            reason_query = f"""
                 SELECT 
                     o.reason AS reason,
                     COUNT(o.order_number) AS Total_Orders
-                FROM cancelled_orders o
+                FROM {cancelled_orders} o
                 GROUP BY o.reason
                 ORDER BY Total_Orders DESC
                 """
@@ -2690,12 +3158,12 @@ def orders_management_page():
             df_reason = pd.DataFrame(reason_data, columns=["Reason", "Total Orders"])
             total_orders_all = df_reason['Total Orders'].sum()
             df_reason['Percentage'] = (df_reason['Total Orders'] / total_orders_all) * 100
-            date_query = """
+            date_query = f"""
                         SELECT 
                             o.order_date, 
                             COUNT(o.order_number) AS total_orders,
                             SUM(o.order_price) AS total_sales
-                        FROM cancelled_orders o
+                        FROM {cancelled_orders} o
                         GROUP BY o.order_date
                         ORDER BY o.order_date
                     """
@@ -2704,15 +3172,15 @@ def orders_management_page():
             df_date = pd.DataFrame(date_data, columns=["Date", "Total Orders", "Total Sales"])
             df_date["Date"] = pd.to_datetime(df_date["Date"])  
             df_date.sort_values(by="Date", inplace=True)  
-            query = """
+            query = f"""
                     WITH product_orders AS (
                         SELECT
                             o.order_number,
                             TRIM(SPLIT_PART(regexp_split_to_table(o.products, ','), ':', 1)) AS product_name
-                        FROM cancelled_orders o
+                        FROM {cancelled_orders} o
                     ),
                     distinct_orders AS (
-                        SELECT COUNT(DISTINCT order_number) AS total_orders FROM cancelled_orders
+                        SELECT COUNT(DISTINCT order_number) AS total_orders FROM {cancelled_orders}
                     )
                     SELECT 
                         product_name,
@@ -2954,15 +3422,8 @@ def orders_management_page():
                     st.session_state.re_order_products[i] = {"Type": type_of_product, "Count": count_of_product}
             order_price = custom_number_input("Order Price", min_value=0,step=1)
             order_date = st.date_input("Order Date")
-            if status=="Go Only":
-                shipping_price = custom_number_input("Shipping Price", min_value=0,step=1)
-                customer_shipping_price=custom_number_input("Shipping Price paid by customer", min_value=0,step=1)
-            elif status=="Go And Back":
-                go_shipping_price=custom_number_input("Go Shipping Price", min_value=0,step=1)
-                back_shipping_price=custom_number_input("Back Shipping Price", min_value=0,step=1)
-                customer_shipping_price=custom_number_input("Shipping Price paid by customer", min_value=0,step=1)
-                shipping_price=go_shipping_price+back_shipping_price
-
+            shipping_price = custom_number_input("Shipping Price", min_value=0,step=1)
+            customer_shipping_price=custom_number_input("Shipping Price paid by customer", min_value=0,step=1)
             if st.button("Add Returned Order"):
                     if not customer_name.strip():
                         st.error("Customer Name is required.")
@@ -3000,17 +3461,17 @@ def orders_management_page():
                         cursor = conn.cursor()
 
                         cursor.execute(
-                            "SELECT 1 FROM returned_orders WHERE order_number = %s",
+                            f"SELECT 1 FROM {returned_orders} WHERE order_number = %s",
                             (order_number,)
                         )
                         existing_order = cursor.fetchone()
                         cursor.execute(
-                            "SELECT 1 FROM cancelled_orders WHERE order_number = %s",
+                            f"SELECT 1 FROM {cancelled_orders} WHERE order_number = %s",
                             (order_number,)
                         )
                         existing_order_1 = cursor.fetchone()
                         cursor.execute(
-                            "SELECT 1 FROM orders WHERE order_number = %s",
+                            f"SELECT 1 FROM {orders} WHERE order_number = %s",
                             (order_number,)
                         )
                         existing_order_2 = cursor.fetchone()
@@ -3022,7 +3483,7 @@ def orders_management_page():
                             st.error("Order Number already exists in Completed Orders. Please enter a unique Order Number.")
                         else:
                             cursor.execute(
-                                "SELECT customer_id FROM customers WHERE customer_phone_1 = %s",
+                                f"SELECT customer_id FROM {customers} WHERE customer_phone_1 = %s",
                                 (corrected_phone_1,)
                             )
                             customer = cursor.fetchone()
@@ -3031,14 +3492,14 @@ def orders_management_page():
                                 customer_id = customer[0]
                             else:
                                 cursor.execute(
-                                    "INSERT INTO customers (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
+                                    f"INSERT INTO {customers} (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
                                     (customer_name, corrected_phone_1, corrected_phone_2, corrected_email)
                                 )
                                 customer_id = cursor.fetchone()[0]
                             total_count = sum(item["Count"] for item in st.session_state.re_order_products)
                             products_string = ", ".join([f"{item['Type']}:{item['Count']}" for item in st.session_state.re_order_products])
                             cursor.execute(
-                                "INSERT INTO returned_orders (customer_id, ship_company, region, order_number,reason,hoodies,order_price,shipping_price,status,products,order_date,customer_shipping_price) VALUES (%s, %s, %s, %s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                                f"INSERT INTO {returned_orders} (customer_id, ship_company, region, order_number,reason,hoodies,order_price,shipping_price,status,products,order_date,customer_shipping_price) VALUES (%s, %s, %s, %s,%s,%s,%s,%s,%s,%s,%s,%s)",
                                 (customer_id, ship_company, region, order_number,reason,total_count,order_price,shipping_price,status,products_string,order_date,customer_shipping_price)
                             )
 
@@ -3070,7 +3531,7 @@ def orders_management_page():
                     f"""
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                         c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price,o.shipping_price,o.products,o.order_date,o.customer_shipping_price
-                    FROM returned_orders o
+                    FROM {returned_orders} o
                     INNER JOIN customers c ON o.customer_id = c.customer_id
                     WHERE {search_condition}
                     """,
@@ -3091,7 +3552,7 @@ def orders_management_page():
             
             conn = create_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT DISTINCT ship_company FROM returned_orders")
+            cursor.execute(f"SELECT DISTINCT ship_company FROM {returned_orders}")
             ship_companies = [row[0] for row in cursor.fetchall()]
             selected_ship_company = st.selectbox("Filter by Shipping Company", ["All"] + ship_companies)
             sort_column = "CAST(o.order_number AS INTEGER)"
@@ -3100,7 +3561,7 @@ def orders_management_page():
             query = f"""
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email, o.ship_company, o.region, o.reason,o.hoodies,o.order_price,o.shipping_price,o.products,o.order_date,o.customer_shipping_price
-            FROM returned_orders o
+            FROM {returned_orders} o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
             if selected_ship_company != "All":
@@ -3110,9 +3571,9 @@ def orders_management_page():
                 
             cursor.execute(query)
             all_orders = cursor.fetchall()
-            total_query = """
+            total_query = f"""
             SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.order_price), 0),COALESCE(SUM(o.shipping_price), 0)
-            FROM returned_orders o
+            FROM {returned_orders} o
             """
             if selected_ship_company != "All":
                 total_query += f" WHERE ship_company = '{selected_ship_company}'"
@@ -3220,7 +3681,7 @@ def orders_management_page():
 
         elif selected_1=="Modify Orders":   
                 Status=["Go Only","Go And Back"]   
-                Reasons=["Customer","Delivery Man","Quality","Size","Team"]     
+                Reasons=["Customer","Delvirey Man","Quality","Size","Team"]     
                 st.subheader("Select an Order")
                 search_order_number = st.text_input("Enter Order Code")
 
@@ -3229,10 +3690,10 @@ def orders_management_page():
                     cursor = conn.cursor()
                     
                     cursor.execute(
-                        """
+                        f"""
                         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
                             c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price,o.shipping_price,o.order_date,o.status,o.products,o.customer_shipping_price
-                        FROM returned_orders o
+                        FROM {returned_orders} o
                         INNER JOIN customers c ON o.customer_id = c.customer_id
                         WHERE o.order_number = %s
                         """,
@@ -3313,12 +3774,12 @@ def orders_management_page():
                                     [f"{item['Type']}:{item['Count']}" for item in (st.session_state.ca_modified_products + st.session_state.ca_new_products)]
                                 )
                                 cursor.execute(
-                                    """
-                                    UPDATE customers
+                                    f"""
+                                    UPDATE {customers}
                                     SET customer_name = %s, customer_phone_1 = %s, customer_phone_2 = %s, email = %s
                                     WHERE customer_id = (
                                         SELECT customer_id 
-                                        FROM returned_orders 
+                                        FROM {returned_orders} 
                                         WHERE order_number = %s
                                     )
                                     """,
@@ -3326,8 +3787,8 @@ def orders_management_page():
                                 )
                                 
                                 cursor.execute(
-                                    """
-                                    UPDATE returned_orders
+                                    f"""
+                                    UPDATE {returned_orders}
                                     SET ship_company = %s, region = %s,reason=%s,hoodies=%s,order_price=%s,shipping_price=%s,order_date=%s,status=%s,products=%s,customer_shipping_price=%s
                                     WHERE order_number = %s
                                     """,
@@ -3347,7 +3808,7 @@ def orders_management_page():
                             if delete_submit:
                                 if delete_password == "admin":
                                     cursor.execute(
-                                        "DELETE FROM returned_orders WHERE order_number = %s", (search_order_number,)
+                                        f"DELETE FROM {returned_orders} WHERE order_number = %s", (search_order_number,)
                                     )
                                     conn.commit()
                                     st.success("Order deleted successfully!")
@@ -3359,10 +3820,10 @@ def orders_management_page():
                     
                     conn.close()
         elif selected_1=="Delete Orders":
-            query = """
+            query = f"""
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email, o.ship_company, o.region, o.reason,o.hoodies,o.order_price,o.shipping_price,o.order_date,o.customer_shipping_price
-            FROM returned_orders o
+            FROM {returned_orders} o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
             
@@ -3429,7 +3890,7 @@ def orders_management_page():
                             if len(orders_tuple) == 1:
                                 orders_tuple = (orders_tuple[0],)
 
-                            delete_query = "DELETE FROM returned_orders WHERE order_number IN %s"
+                            delete_query = f"DELETE FROM {returned_orders} WHERE order_number IN %s"
                             try:
                                 with create_connection() as conn:
                                     cursor = conn.cursor()
@@ -3464,7 +3925,7 @@ def orders_management_page():
             conn = create_connection()
             cursor = conn.cursor()
 
-            total_query = """
+            total_query = f"""
                 SELECT 
                     COUNT(o.order_number) AS total_orders, 
                     COALESCE(SUM(o.hoodies), 0) AS total_products,
@@ -3473,18 +3934,18 @@ def orders_management_page():
                     COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_cutomer_prices,
                     COALESCE(SUM(CASE WHEN o.status = 'Go Only' THEN o.shipping_price ELSE 0 END), 0)-COALESCE(SUM(CASE WHEN o.status = 'Go Only' THEN o.customer_shipping_price ELSE 0 END), 0) AS total_shipping_prices_go,
                     COALESCE(SUM(CASE WHEN o.status = 'Go And Back' THEN o.shipping_price ELSE 0 END), 0)-COALESCE(SUM(CASE WHEN o.status = 'Go And Back' THEN o.customer_shipping_price ELSE 0 END), 0) AS total_shipping_prices_back
-                FROM returned_orders o
+                FROM {returned_orders} o
                 """
             cursor.execute(total_query)
             total_orders, total_products, total_prices, total_shipping_prices,total_shipping_cutomer_prices,total_shipping_prices_go,total_shipping_prices_back = cursor.fetchone()
             total_shipping_cost=total_shipping_prices
             total_shipping_prices=total_shipping_prices-total_shipping_cutomer_prices
             total_profit = total_prices - total_shipping_cost
-            query = """
+            query = f"""
                 SELECT 
                     o.region, 
                     COUNT(o.order_number) AS total_orders 
-                FROM returned_orders o
+                FROM {returned_orders} o
                 GROUP BY o.region
                 ORDER BY total_orders DESC
                 """
@@ -3493,11 +3954,11 @@ def orders_management_page():
             df = pd.DataFrame(data, columns=["Region", "Total Orders"])
             total_orders_region = df['Total Orders'].sum()
             df['Percentage'] = (df['Total Orders'] / total_orders_region) * 100
-            shipping_company_query = """
+            shipping_company_query = f"""
                 SELECT 
                     o.ship_company AS Shipping_Company,
                     COUNT(o.order_number) AS Total_Orders
-                FROM returned_orders o
+                FROM {returned_orders} o
                 GROUP BY o.ship_company
                 ORDER BY Total_Orders DESC
                 """
@@ -3506,32 +3967,32 @@ def orders_management_page():
             df_shipping = pd.DataFrame(shipping_data, columns=["Shipping Company", "Total Orders"])
             total_orders_shipping = df_shipping['Total Orders'].sum()
             df_shipping['Percentage'] = (df_shipping['Total Orders'] / total_orders_shipping) * 100
-            total_cancelled_query="""
+            total_cancelled_query=f"""
             SELECT
                 COUNT(o.order_number) AS total_orders
-            FROM cancelled_orders o
+            FROM {cancelled_orders} o
             """
             cursor.execute(total_cancelled_query)
             total_cancelled=cursor.fetchone()[0]
-            total_completeed_query="""
+            total_completeed_query=f"""
             SELECT
                 COUNT(o.order_number) AS total_orders
-            FROM orders o
+            FROM {orders} o
             """
             cursor.execute(total_completeed_query)
             total_comp=cursor.fetchone()[0]
-            total_shipping_query="""
+            total_shipping_query=f"""
             SELECT
                 COUNT(o.order_number) AS total_orders
-            FROM shipping o
+            FROM {shipping} o
             """
             cursor.execute(total_shipping_query)
             total_shipping=cursor.fetchone()[0]
-            reason_query = """
+            reason_query = f"""
                 SELECT 
                     o.reason AS reason,
                     COUNT(o.order_number) AS Total_Orders
-                FROM returned_orders o
+                FROM {returned_orders} o
                 GROUP BY o.reason
                 ORDER BY Total_Orders DESC
                 """
@@ -3540,11 +4001,11 @@ def orders_management_page():
             df_reason = pd.DataFrame(reason_data, columns=["Reason", "Total Orders"])
             total_orders_all = df_reason['Total Orders'].sum()
             df_reason['Percentage'] = (df_reason['Total Orders'] / total_orders_all) * 100
-            status_query = """
+            status_query = f"""
                 SELECT 
                     o.status AS status,
                     COUNT(o.order_number) AS Total_Orders
-                FROM returned_orders o
+                FROM {returned_orders} o
                 GROUP BY o.status
                 ORDER BY Total_Orders DESC
                 """
@@ -3553,12 +4014,12 @@ def orders_management_page():
             df_status = pd.DataFrame(status_data, columns=["Status", "Total Orders"])
             total_orders_all = df_reason['Total Orders'].sum()
             df_status['Percentage'] = (df_status['Total Orders'] / total_orders_all) * 100
-            date_query = """
+            date_query = f"""
                         SELECT 
                             o.order_date, 
                             COUNT(o.order_number) AS total_orders,
                             SUM(o.order_price) AS total_sales
-                        FROM returned_orders o
+                        FROM {returned_orders} o
                         GROUP BY o.order_date
                         ORDER BY o.order_date
                     """
@@ -3573,12 +4034,12 @@ def orders_management_page():
                 products_dict = {item[0].strip(): int(item[1]) for item in product_items}
                 return products_dict
 
-            query = """
+            query = f"""
             SELECT 
                 o.order_number,
                 o.products,
                 o.shipping_price-o.customer_shipping_price
-            FROM returned_orders o
+            FROM {returned_orders} o
             """
             cursor.execute(query)
             data = cursor.fetchall()
@@ -3604,11 +4065,11 @@ def orders_management_page():
             df__shipping = df__shipping.sort_values(by="Total Shipping Price", ascending=False)
             total_shipping_cost = df__shipping["Total Shipping Price"].sum()
             df__shipping["Percentage"] = (df__shipping["Total Shipping Price"] / total_shipping_cost) * 100
-            shipping_company_query = """
+            shipping_company_query = f"""
                 SELECT 
                     o.status AS Status,
                     SUM(o.shipping_price)-SUM(o.customer_shipping_price) AS Total_Shipping_Cost
-                FROM returned_orders o
+                FROM {returned_orders} o
                 GROUP BY o.status
                 ORDER BY Total_Shipping_Cost DESC
             """
@@ -3618,11 +4079,11 @@ def orders_management_page():
             df___shipping = pd.DataFrame(shipping_data, columns=["Status", "Total Shipping Cost"])
             total_shipping_cost = df___shipping["Total Shipping Cost"].sum()
             df___shipping["Percentage"] = (df___shipping["Total Shipping Cost"] / total_shipping_cost) * 100
-            shipping_company_query = """
+            shipping_company_query = f"""
                 SELECT 
                     o.reason AS Reason,
                     SUM(o.shipping_price) - SUM(o.customer_shipping_price) AS Total_Shipping_Cost
-                FROM returned_orders o
+                FROM {returned_orders} o
                 GROUP BY o.reason
                 ORDER BY Total_Shipping_Cost DESC
             """
@@ -3632,15 +4093,15 @@ def orders_management_page():
             df____shipping = pd.DataFrame(shipping_data, columns=["Reason", "Total Shipping Cost"])
             total_shipping_cost = df____shipping["Total Shipping Cost"].sum()
             df____shipping["Percentage"] = (df____shipping["Total Shipping Cost"] / total_shipping_cost) * 100
-            query = """
+            query = f"""
                     WITH product_orders AS (
                         SELECT
                             o.order_number,
                             TRIM(SPLIT_PART(regexp_split_to_table(o.products, ','), ':', 1)) AS product_name
-                        FROM returned_orders o
+                        FROM {returned_orders} o
                     ),
                     distinct_orders AS (
-                        SELECT COUNT(DISTINCT order_number) AS total_orders FROM returned_orders
+                        SELECT COUNT(DISTINCT order_number) AS total_orders FROM {returned_orders}
                     )
                     SELECT 
                         product_name,
@@ -4043,7 +4504,7 @@ def orders_management_page():
                     cursor = conn.cursor()
                     
                     cursor.execute(
-                            "SELECT customer_id FROM customers WHERE customer_phone_1 = %s",
+                            f"SELECT customer_id FROM {customers} WHERE customer_phone_1 = %s",
                             (corrected_phone_1,)
                         )
                     customer = cursor.fetchone()
@@ -4052,14 +4513,14 @@ def orders_management_page():
                             customer_id = customer[0]
                     else:
                             cursor.execute(
-                                "INSERT INTO customers (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
+                                f"INSERT INTO {customers} (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
                                 (customer_name, corrected_phone_1, corrected_phone_2, corrected_email)
                             )
                             customer_id = cursor.fetchone()[0]
                     total_count = sum(item["Count"] for item in st.session_state.sh_order_products)
                     products_string = ", ".join([f"{item['Type']}:{item['Count']}" for item in st.session_state.sh_order_products])
                     cursor.execute(
-                            "INSERT INTO shipping (customer_id, ship_company, region, order_number, status, shipping_price, hoodies,products,reason,customer_shipping_price) VALUES (%s, %s, %s, %s, %s, %s, %s,%s,%s,%s)",
+                            f"INSERT INTO {shipping} (customer_id, ship_company, region, order_number, status, shipping_price, hoodies,products,reason,customer_shipping_price) VALUES (%s, %s, %s, %s, %s, %s, %s,%s,%s,%s)",
                             (customer_id, ship_company, region, order_number, status, shipping_price, total_count,products_string,reason,customer_shipping_price)
                         )
 
@@ -4093,7 +4554,7 @@ def orders_management_page():
                     f"""
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                         c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies,o.reason,o.products,o.customer_shipping_price
-                    FROM shipping o
+                    FROM {shipping} o
                     INNER JOIN customers c ON o.customer_id = c.customer_id
                     WHERE {search_condition}
                     """,
@@ -4116,7 +4577,7 @@ def orders_management_page():
             
             conn = create_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT DISTINCT ship_company FROM shipping")
+            cursor.execute(f"SELECT DISTINCT ship_company FROM {shipping}")
             ship_companies = [row[0] for row in cursor.fetchall()]
             selected_ship_company = st.selectbox("Filter by Shipping Company", ["All"] + ship_companies)
             sort_column = "CAST(o.order_number AS INTEGER)"
@@ -4125,7 +4586,7 @@ def orders_management_page():
             query = f"""
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies,o.reason,o.products,o.customer_shipping_price
-            FROM shipping o
+            FROM {shipping} o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
             if selected_ship_company != "All":
@@ -4135,9 +4596,9 @@ def orders_management_page():
                 
             cursor.execute(query)
             all_orders = cursor.fetchall()
-            total_query = """
+            total_query = f"""
             SELECT COUNT(o.order_number), COALESCE(SUM(o.hoodies),0),COALESCE(SUM(o.shipping_price), 0)
-            FROM shipping o
+            FROM {shipping} o
             """
             if selected_ship_company != "All":
                 total_query += f" WHERE ship_company = '{selected_ship_company}'"
@@ -4248,10 +4709,10 @@ def orders_management_page():
                 cursor = conn.cursor()
                 
                 cursor.execute(
-                    """
+                    f"""
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
                         c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies,o.reason,o.products,o.customer_shipping_price
-                    FROM shipping o
+                    FROM {shipping} o
                     INNER JOIN customers c ON o.customer_id = c.customer_id
                     WHERE o.order_number = %s
                     """,
@@ -4325,12 +4786,12 @@ def orders_management_page():
                                     [f"{item['Type']}:{item['Count']}" for item in (st.session_state.sh_modified_products + st.session_state.sh_new_products)]
                                 )
                                 cursor.execute(
-                                    """
-                                    UPDATE customers
+                                    f"""
+                                    UPDATE {customers}
                                     SET customer_name = %s, customer_phone_1 = %s, customer_phone_2 = %s, email = %s
                                     WHERE customer_id = (
                                         SELECT customer_id 
-                                        FROM shipping
+                                        FROM {shipping}
                                         WHERE order_number = %s
                                     )
                                     """,
@@ -4338,8 +4799,8 @@ def orders_management_page():
                                 )
                                 
                                 cursor.execute(
-                                    """
-                                    UPDATE shipping
+                                    f"""
+                                    UPDATE {shipping}
                                     SET ship_company = %s, region = %s,status=%s,shipping_price=%s,hoodies=%s,reason=%s,products=%s,customer_shipping_price=%s
                                     WHERE order_number = %s
                                     """,
@@ -4361,7 +4822,7 @@ def orders_management_page():
                         if delete_submit:
                             if delete_password == "admin":
                                 cursor.execute(
-                                    "DELETE FROM shipping WHERE order_number = %s", (search_order_number,)
+                                    f"DELETE FROM {shipping} WHERE order_number = %s", (search_order_number,)
                                 )
                                 conn.commit()
                                 st.success("Order deleted successfully!")
@@ -4373,10 +4834,10 @@ def orders_management_page():
                 
                 conn.close()
         elif selected=='Delete Orders':
-            query = """
+            query = f"""
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies,o.reason,o.customer_shipping_price,o.order_id
-            FROM shipping o
+            FROM {shipping} o
             INNER JOIN customers c ON o.customer_id = c.customer_id
             """
             
@@ -4418,7 +4879,7 @@ def orders_management_page():
                         height=400,
                         theme="streamlit",
                         fit_columns_on_grid_load=True,
-                        key="grid"
+                        key="grid",
                 )
                 selected_rows = grid_response["selected_rows"]
 
@@ -4442,7 +4903,7 @@ def orders_management_page():
                             if len(orders_tuple) == 1:
                                 orders_tuple = (orders_tuple[0],)
 
-                            delete_query = "DELETE FROM shipping WHERE order_id IN %s"
+                            delete_query = f"DELETE FROM {shipping} WHERE order_id IN %s"
                             try:
                                 with create_connection() as conn:
                                     cursor = conn.cursor()
@@ -4477,20 +4938,20 @@ def orders_management_page():
             conn = create_connection()
             cursor = conn.cursor()
 
-            total_query = """
+            total_query = f"""
                 SELECT 
                     COUNT(o.order_number) AS total_orders, 
                     COALESCE(SUM(o.hoodies), 0) AS total_products,
                     COALESCE(SUM(o.shipping_price), 0)-COALESCE(SUM(o.customer_shipping_price), 0) AS total_shipping_prices
-                FROM shipping o
+                FROM {shipping} o
                 """
             cursor.execute(total_query)
             total_orders, total_products, total_shipping_prices = cursor.fetchone()
-            query = """
+            query = f"""
                 SELECT 
                     o.region, 
                     COUNT(o.order_number) AS total_orders 
-                FROM shipping o
+                FROM {shipping} o
                 GROUP BY o.region
                 ORDER BY total_orders DESC
                 """
@@ -4499,11 +4960,11 @@ def orders_management_page():
             df = pd.DataFrame(data, columns=["Region", "Total Orders"])
             total_orders_region = df['Total Orders'].sum()
             df['Percentage'] = (df['Total Orders'] / total_orders_region) * 100
-            shipping_company_query = """
+            shipping_company_query = f"""
                 SELECT 
                     o.ship_company AS Shipping_Company,
                     COUNT(o.order_number) AS Total_Orders
-                FROM shipping o
+                FROM {shipping} o
                 GROUP BY o.ship_company
                 ORDER BY Total_Orders DESC
                 """
@@ -4512,11 +4973,11 @@ def orders_management_page():
             df_shipping = pd.DataFrame(shipping_data, columns=["Shipping Company", "Total Orders"])
             total_orders_shipping = df_shipping['Total Orders'].sum()
             df_shipping['Percentage'] = (df_shipping['Total Orders'] / total_orders_shipping) * 100
-            reason_query = """
+            reason_query = f"""
                 SELECT 
                     o.reason AS reason,
                     COUNT(o.order_number) AS Total_Orders
-                FROM shipping o
+                FROM {shipping} o
                 GROUP BY o.reason
                 ORDER BY Total_Orders DESC
                 """
@@ -4525,11 +4986,11 @@ def orders_management_page():
             df_reason = pd.DataFrame(reason_data, columns=["Reason", "Total Orders"])
             total_orders_all = df_reason['Total Orders'].sum()
             df_reason['Percentage'] = (df_reason['Total Orders'] / total_orders_all) * 100
-            status_query = """
+            status_query = f"""
                 SELECT 
                     o.status AS status,
                     COUNT(o.order_number) AS Total_Orders
-                FROM shipping o
+                FROM {shipping} o
                 GROUP BY o.status
                 ORDER BY Total_Orders DESC
                 """
@@ -4543,12 +5004,12 @@ def orders_management_page():
                 products_dict = {item[0].strip(): int(item[1]) for item in product_items}
                 return products_dict
 
-            query = """
+            query = f"""
             SELECT 
                 o.order_number,
                 o.products,
                 o.shipping_price-o.customer_shipping_price
-            FROM shipping o
+            FROM {shipping} o
             """
             cursor.execute(query)
             data = cursor.fetchall()
@@ -4575,11 +5036,11 @@ def orders_management_page():
             df__shipping = df__shipping.sort_values(by="Total Shipping Price", ascending=False)
             total_shipping_cost = df__shipping["Total Shipping Price"].sum()
             df__shipping["Percentage"] = (df__shipping["Total Shipping Price"] / total_shipping_cost) * 100
-            shipping_company_query = """
+            shipping_company_query = f"""
                 SELECT 
                     o.status AS Status,
                     SUM(o.shipping_price - o.customer_shipping_price) AS Total_Shipping_Cost
-                FROM shipping o
+                FROM {shipping} o
                 GROUP BY o.status
                 ORDER BY Total_Shipping_Cost DESC
             """
@@ -4589,11 +5050,11 @@ def orders_management_page():
             df_shipping_status = pd.DataFrame(shipping_data, columns=["Status", "Total Shipping Cost"])
             total_shipping_cost = df_shipping_status["Total Shipping Cost"].sum()
             df_shipping_status["Percentage"] = (df_shipping_status["Total Shipping Cost"] / total_shipping_cost) * 100
-            shipping_company_query = """
+            shipping_company_query = f"""
                 SELECT 
                     o.reason AS Reason,
                     SUM(o.shipping_price - o.customer_shipping_price) AS Total_Shipping_Cost
-                FROM shipping o
+                FROM {shipping} o
                 GROUP BY o.reason
                 ORDER BY Total_Shipping_Cost DESC
             """
@@ -4603,15 +5064,15 @@ def orders_management_page():
             df_shipping_reason = pd.DataFrame(shipping_data, columns=["Reason", "Total Shipping Cost"])
             total_shipping_cost = df_shipping_reason["Total Shipping Cost"].sum()
             df_shipping_reason["Percentage"] = (df_shipping_reason["Total Shipping Cost"] / total_shipping_cost) * 100
-            query = """
+            query = f"""
                     WITH product_orders AS (
                         SELECT
                             o.order_number,
                             TRIM(SPLIT_PART(regexp_split_to_table(o.products, ','), ':', 1)) AS product_name
-                        FROM shipping o
+                        FROM {shipping} o
                     ),
                     distinct_orders AS (
-                        SELECT COUNT(DISTINCT order_number) AS total_orders FROM shipping
+                        SELECT COUNT(DISTINCT order_number) AS total_orders FROM {shipping}
                     )
                     SELECT 
                         product_name,
@@ -4624,24 +5085,24 @@ def orders_management_page():
 
                     """
             df_products_percentage = pd.read_sql(query, conn)
-            total_completed_query="""
+            total_completed_query=f"""
             SELECT
                 COUNT(o.order_number) AS total_orders
-            FROM orders o
+            FROM {orders} o
             """
             cursor.execute(total_completed_query)
             total_completed=cursor.fetchone()[0]
-            total_returned_query="""
+            total_returned_query=f"""
             SELECT
                 COUNT(o.order_number) AS total_orders
-            FROM returned_orders o
+            FROM {returned_orders} o
             """
             cursor.execute(total_returned_query)
             total_returned=cursor.fetchone()[0]
-            total_cancelled_query="""
+            total_cancelled_query=f"""
             SELECT
                 COUNT(o.order_number) AS total_orders
-            FROM shipping o
+            FROM {shipping} o
             """
             cursor.execute(total_cancelled_query)
             total_cancelled=cursor.fetchone()[0]
@@ -4889,10 +5350,29 @@ def orders_management_page():
             with st.expander(status):
                 st.write(f"{descriptions['en']}")
                 st.write(f"{descriptions['ar']}")
+SEASON_PARAMS = {
+    "Winter": ("orders", "returned_orders", "cancelled_orders", "shipping", "on_hole", "customers"),
+    "Summer": ("summer_completed", "summer_returned", "summer_cancelled", "summer_shipping", "summer_on_hold", "summer_customers"),
+    # Add more seasons as needed
+}
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if st.session_state.logged_in:
-    orders_management_page()
+    if "selected_season" not in st.session_state or st.session_state.selected_season is None:
+        # Show the appropriate season selection page
+        if st.session_state.username in ["walid", "ahmed"]:
+            season_selection_page()
+        else:
+            season_selection_page_1()
+    else:
+        # Get the parameters for the selected season and call the orders page
+        season = st.session_state.selected_season
+        params = SEASON_PARAMS.get(season)
+        if params:
+            orders_management_page(*params)
+        else:
+            st.error(f"No parameters defined for season: {season}")
 else:
     login_page()
