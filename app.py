@@ -151,7 +151,7 @@ def season_selection_page_1():
         st.markdown("")
         if st.button("Select Summer", key="summer", use_container_width=True):
             st.session_state.selected_season = "Summer"
-            st.rerun()    
+            st.rerun()     
 def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_hole,customers):
     def custom_number_input(label, value=0, min_value=0, step=1,key=None):
         value = st.text_input(label, value=str(value),key=key)
@@ -465,11 +465,11 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                                     st.session_state.new_products.pop(i)
                                     st.rerun()
                         new_order_price = custom_number_input("Order Price",value=order_details[1],min_value=0,step=1)
-                        new_shipping_price_by_company = custom_number_input("Shipping Price Paid By Company",value=order_details[7],min_value=0,step=1)
                         order_type=st.selectbox("Order Type",options=["Completed","Cancelled","Returned"])
                         if order_type=="Completed":
                             new_ship_company = st.selectbox("Shipping Company",company)
-                            new_shipping_price = custom_number_input("Shipping Price Paid By Customer",min_value=0,step=1)
+                            new_shipping_price = custom_number_input("Shipping Price Paid By Customer",value=order_details[7],min_value=0,step=1)
+                            new_shipping_price_by_company = custom_number_input("Shipping Price Paid To Company",min_value=0,step=1)
                             new_days_to_receive=st.text_input("Days_to_receive")
                             if st.button("Save Completed Order"):
                                 # First, check if the customer already exists based on phone number
@@ -591,8 +591,8 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                                 new_ship_company = st.selectbox("Shipping Company",company)
                                 new_status=st.selectbox("Status",["Go Only","Go And Back"])
                                 new_reason=st.selectbox("Reason",["Customer","Delivery Man","Quality","Size","Team"])
-                                shipping_price = custom_number_input("Shipping Price Paid By Company",value=order_details[7],min_value=0,step=1,key=f"shipping_price_by_company_{order_details[0]}")
-                                customer_shipping_price=custom_number_input("Shipping Price paid by customer", min_value=0,step=1)
+                                customer_shipping_price=custom_number_input("Shipping Price paid by customer",value=order_details[7], min_value=0,step=1)
+                                shipping_price = custom_number_input("Shipping Price Paid To Company",min_value=0,step=1,key=f"shipping_price_by_company_{order_details[0]}")
                                 if st.button("Save Returned Order"):
                                     # First, check if the customer already exists based on phone number
                                     cursor.execute(
@@ -1295,7 +1295,8 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                 ship_company = st.selectbox("Shipping Company",company)
                 region = st.selectbox("Region",egypt_governorates)
                 order_number = st.text_input("Order Code")
-                shipping_price = custom_number_input("Shipping Price", min_value=0, step=1)
+                shipping_price = custom_number_input("Shipping Price Paid By Customer",min_value=0,step=1)
+                shipping_price_to_company = custom_number_input("Shipping Price Paid To Company",min_value=0,step=1)
                 days_to_receive = custom_number_input("Days to Receive Order",min_value=0,step=1)
                 if "order_products" not in st.session_state:
                     st.session_state.order_products = []
@@ -1413,8 +1414,8 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                             products_string = ", ".join([f"{item['Type']}:{item['Count']}" for item in st.session_state.order_products])
                             products_prices = ", ".join([f"{item['Type']}:{item['Price']}" for item in st.session_state.order_products])
                             cursor.execute(
-                                f"INSERT INTO {orders} (customer_id, ship_company, region, order_price, order_number,days_to_receive,hoodies,shipping_price,products,order_date,product_prices) VALUES (%s, %s, %s, %s, %s,%s,%s,%s,%s,%s,%s)",
-                                (customer_id, ship_company, region, order_price, order_number,days_to_receive,total_count,shipping_price,products_string,order_date,products_prices)
+                                f"INSERT INTO {orders} (customer_id, ship_company, region, order_price, order_number,days_to_receive,hoodies,shipping_price,products,order_date,product_prices,Shipping) VALUES (%s, %s, %s, %s, %s,%s,%s,%s,%s,%s,%s,%s)",
+                                (customer_id, ship_company, region, order_price, order_number,days_to_receive,total_count,shipping_price,products_string,order_date,products_prices,shipping_price_to_company)
                             )
 
                             conn.commit()
@@ -1517,7 +1518,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                         "Region": order[6],
                         "Order Price": f"{order[7]}",
                         "Shipping Price By Customer":order[10],
-                        "Shipping Price By Company":order[14],
+                        "Shipping Price To Company":order[14],
                         "Order Profit": (order[7] or 0) - (order[10] or 0),
                         "Days to Receive":order[8],
                         "Type of products":order[11],
@@ -1621,7 +1622,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                     cursor.execute(
                         f"""
                         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
-                            c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies,o.shipping_price,o.order_date,o.products
+                            c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies,o.shipping_price,o.order_date,o.products,o.Shipping
                         FROM {orders} o
                         INNER JOIN customers c ON o.customer_id = c.customer_id
                         WHERE o.order_number = %s
@@ -1649,7 +1650,8 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                         new_ship_company = st.selectbox("Shipping Company",company,index=company.index(order_details[5]))
                         new_region = st.selectbox("Region",egypt_governorates,index=egypt_governorates.index(order_details[6]))
                         new_order_price = custom_number_input("Order Price",value=order_details[7],min_value=0,step=1)
-                        new_shipping_price = custom_number_input("Shipping Price",value=order_details[10],min_value=0,step=1)
+                        new_shipping_price = custom_number_input("Shipping Price Paid By Customer",value=order_details[10],min_value=0,step=1)
+                        new_shipping_price_to_company = custom_number_input("Shipping Price Paid To Company",value=order_details[13],min_value=0,step=1)
                         new_days_to_receive=st.text_input("Days_to_receive",value=order_details[8])
                         new_date=st.date_input("Order Date",value=order_details[11])
                         if not products_list:
@@ -1716,13 +1718,13 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                                 f"""
                                 UPDATE {orders}
                                 SET ship_company = %s, region = %s, order_price = %s, days_to_receive = %s,
-                                    hoodies = %s, shipping_price = %s, products = %s, order_date = %s
+                                    hoodies = %s, shipping_price = %s, products = %s, order_date = %s,Shipping= %s
                                 WHERE order_number = %s
                                 """,
                                 (
                                     new_ship_company, new_region, new_order_price, new_days_to_receive,
                                     sum(item["Count"] for item in (st.session_state.modified_products + st.session_state.new_products)),
-                                    new_shipping_price, updated_products, new_date, search_order_number
+                                    new_shipping_price, updated_products, new_date,new_shipping_price_to_company, search_order_number
                                 )
                             )
 
@@ -4389,7 +4391,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
             def reset_sh_order_session_states():
                     st.session_state.sh_order_products = []
                     st.session_state.sh_product_count = 1
-            customer_name = st.text_input("Customer Name")
+            # customer_name = st.text_input("Customer Name")
             customer_phone_1 = st.text_input("Customer Phone 1")
             corrected_phone_1, is_valid_1, is_valid_11 = correct_phone_number(customer_phone_1)
             if customer_phone_1:
@@ -4404,28 +4406,28 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                         unsafe_allow_html=True,
                     )
 
-            customer_phone_2 = st.text_input("Customer Phone 2 (Optional)", value="")
-            corrected_phone_2, is_valid_2, is_valid_22 = correct_phone_number(customer_phone_2)
-            if customer_phone_2:
-                if not is_valid_22:
-                    st.markdown(
-                        f"<div style='color: red;'>(Invalid Length): {corrected_phone_2}</div>",
-                        unsafe_allow_html=True,
-                    )
-                elif not is_valid_2:
-                    st.markdown(
-                        f"<div style='color: orange;'>Corrected Phone 2 (Invalid Format): {corrected_phone_2}</div>",
-                        unsafe_allow_html=True,
-                    )
+            # customer_phone_2 = st.text_input("Customer Phone 2 (Optional)", value="")
+            # corrected_phone_2, is_valid_2, is_valid_22 = correct_phone_number(customer_phone_2)
+            # if customer_phone_2:
+            #     if not is_valid_22:
+            #         st.markdown(
+            #             f"<div style='color: red;'>(Invalid Length): {corrected_phone_2}</div>",
+            #             unsafe_allow_html=True,
+            #         )
+            #     elif not is_valid_2:
+            #         st.markdown(
+            #             f"<div style='color: orange;'>Corrected Phone 2 (Invalid Format): {corrected_phone_2}</div>",
+            #             unsafe_allow_html=True,
+            #         )
 
-            email = st.text_input("Email (Optional)", value="")
-            corrected_email, is_valid_email = correct_email(email)
-            if email:
-                if not is_valid_email:
-                    st.markdown(
-                        f"<div style='color: orange;'>Corrected email (Invalid Format): {corrected_email}</div>",
-                        unsafe_allow_html=True,
-                    )
+            # email = st.text_input("Email (Optional)", value="")
+            # corrected_email, is_valid_email = correct_email(email)
+            # if email:
+            #     if not is_valid_email:
+            #         st.markdown(
+            #             f"<div style='color: orange;'>Corrected email (Invalid Format): {corrected_email}</div>",
+            #             unsafe_allow_html=True,
+            #         )
 
             ship_company = st.selectbox("Shipping Company",company)
             region = st.selectbox("Region", egypt_governorates)
@@ -4508,15 +4510,14 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                             (corrected_phone_1,)
                         )
                     customer = cursor.fetchone()
-
-                    if customer:
-                            customer_id = customer[0]
-                    else:
-                            cursor.execute(
-                                f"INSERT INTO {customers} (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
-                                (customer_name, corrected_phone_1, corrected_phone_2, corrected_email)
-                            )
-                            customer_id = cursor.fetchone()[0]
+                    customer_id = customer[0]
+                    # if customer:                
+                    # else:
+                    #         cursor.execute(
+                    #             f"INSERT INTO {customers} (customer_name, customer_phone_1, customer_phone_2, email) VALUES (%s, %s, %s, %s) RETURNING customer_id",
+                    #             (customer_name, corrected_phone_1, corrected_phone_2, corrected_email)
+                    #         )
+                    #         customer_id = cursor.fetchone()[0]
                     total_count = sum(item["Count"] for item in st.session_state.sh_order_products)
                     products_string = ", ".join([f"{item['Type']}:{item['Count']}" for item in st.session_state.sh_order_products])
                     cursor.execute(
