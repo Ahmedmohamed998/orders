@@ -151,7 +151,7 @@ def season_selection_page_1():
         st.markdown("")
         if st.button("Select Summer", key="summer", use_container_width=True):
             st.session_state.selected_season = "Summer"
-            st.rerun()     
+            st.rerun()    
 def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_hole,customers):
     def custom_number_input(label, value=0, min_value=0, step=1,key=None):
         value = st.text_input(label, value=str(value),key=key)
@@ -591,7 +591,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                                 new_ship_company = st.selectbox("Shipping Company",company)
                                 new_status=st.selectbox("Status",["Go Only","Go And Back"])
                                 new_reason=st.selectbox("Reason",["Customer","Delivery Man","Quality","Size","Team"])
-                                customer_shipping_price=custom_number_input("Shipping Price paid by customer",value=order_details[7], min_value=0,step=1)
+                                customer_shipping_price=custom_number_input("Shipping Price paid By customer",value=order_details[7], min_value=0,step=1)
                                 shipping_price = custom_number_input("Shipping Price Paid To Company",min_value=0,step=1,key=f"shipping_price_by_company_{order_details[0]}")
                                 if st.button("Save Returned Order"):
                                     # First, check if the customer already exists based on phone number
@@ -963,8 +963,8 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
             st.markdown("")
             metric_card_with_icon(
                             " AVG Shipping Price", 
-                            f"{int(total_shipping_price/total_orders):,}".replace(",", "."),"",
-                            "Total Shipping Price divide by total orders"
+                            f"{int(total_shipping_price/completed_products_count):,}".replace(",", "."),"",
+                            "Total Shipping Price divide by total Completed Products"
                         )
             st.markdown("")
             result_1 = df_shipping_price_per_company[
@@ -3424,8 +3424,8 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                     st.session_state.re_order_products[i] = {"Type": type_of_product, "Count": count_of_product}
             order_price = custom_number_input("Order Price", min_value=0,step=1)
             order_date = st.date_input("Order Date")
-            shipping_price = custom_number_input("Shipping Price", min_value=0,step=1)
-            customer_shipping_price=custom_number_input("Shipping Price paid by customer", min_value=0,step=1)
+            customer_shipping_price=custom_number_input("Shipping Price paid By customer", min_value=0,step=1)
+            shipping_price = custom_number_input("Shipping Price Paid To Company", min_value=0,step=1)
             if st.button("Add Returned Order"):
                     if not customer_name.strip():
                         st.error("Customer Name is required.")
@@ -3598,7 +3598,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                         "Reason": order[7],
                         "Number Of Products":order[8],
                         "Order Price":order[9],
-                        "Shipping Price in Shipping Company":order[10],
+                        "Shipping Price Paid To Company":order[10],
                         "Order Profit": (order[9] or 0) - (order[10] or 0),
                         "Type of Products": order[11],
                         "Actual Shipping Cost": (order[10] or 0) - (order[13] or 0),
@@ -3723,8 +3723,8 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                         new_status=st.selectbox("Status",Status,Status.index(order_details[12]))
                         new_reason = st.selectbox("Reason",Reasons,Reasons.index(order_details[7]))
                         new_price=custom_number_input("Order Price",value=order_details[9])
-                        new_shipping_price=custom_number_input("Shipping Price",value=order_details[10])
-                        new_customer_shipping_price=custom_number_input("Shipping price paid by customer",value=order_details[14])
+                        new_customer_shipping_price=custom_number_input("Shipping price paid By customer",value=order_details[14])
+                        new_shipping_price=custom_number_input("Shipping Price Paid To Company",value=order_details[10])
                         new_date=st.date_input("Order Date",value=order_details[11])
                         if not products_list:
                            num_products = custom_number_input("Enter the number of products:", min_value=0,step=1)
@@ -4469,9 +4469,9 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                         {"Type": type_of_product, "Count": count_of_product}
                     )
                 else:
-                    st.session_state.sh_order_products[i] = {"Type": type_of_product, "Count": count_of_product}          
-            shipping_price = custom_number_input("Shipping Price", min_value=0, step=1)
-            customer_shipping_price = custom_number_input("Shipping price paid by customer", min_value=0, step=1)
+                    st.session_state.sh_order_products[i] = {"Type": type_of_product, "Count": count_of_product}     
+            customer_shipping_price = custom_number_input("Shipping price paid By customer", min_value=0, step=1)     
+            shipping_price = custom_number_input("Shipping Price Paid To Company", min_value=0, step=1)
             if st.button("Add Order"):
                 if not customer_name.strip():
                     st.error("Customer Name is required.")
@@ -4620,7 +4620,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                         "Region": order[6],
                         "Status": order[7],
                         "Reason":order[10],
-                        "Shipping Price In Shipping Company":order[8],
+                        "Shipping Price Paid To Company":order[8],
                         "Actual Shipping Cost": (order[8] or 0) - (order[12] or 0),
                         "Type of Products":order[11],
                         "Number of Products":order[9]
@@ -4743,8 +4743,8 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                         new_problem_reason="Customer"
                     elif new_status =="Exchanged":
                         new_problem_reason=st.selectbox("Reason",["Size","Quality"])
-                    new_price=custom_number_input("Shipping Price",value=order_details[8])
-                    new_customer_shipping_price=custom_number_input("Shipping price paid by customer",value=order_details[12])
+                    new_customer_shipping_price=custom_number_input("Shipping price paid By customer",value=order_details[12])
+                    new_price=custom_number_input("Shipping Price Paid To Company",value=order_details[8])
                     if "sh_modified_products" not in st.session_state:
                             st.session_state.sh_modified_products = products_list
                     for i, product in enumerate(st.session_state.sh_modified_products):
