@@ -187,7 +187,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
             "Fayoum", "Gharbia", "Ismailia", "Menofia", "Minya", "Qaliubiya",
             "New Valley", "Suez", "Aswan", "Assiut", "Beni Suef", "Port Said",
             "Damietta", "Sharkia", "South Sinai", "Kafr El Sheikh", "Matruh",
-            "Luxor", "Qena", "North Sinai", "Sohag","Monufia","Qalyubia","Al Sharqia"
+            "Luxor", "Qena", "North Sinai", "Sohag","Monufia","Qalyubia","Al Sharqia","Kafr el-Sheikh"
         ]
     reasons=['Customer','Delivery Man']
     reasons_1=['Customer','Out Of Stock','Team']
