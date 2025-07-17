@@ -183,12 +183,36 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                 st.rerun()
  
     egypt_governorates = [
-            "Cairo", "Alexandria", "Giza", "Dakahlia", "Red Sea", "Beheira",
-            "Fayoum", "Gharbia", "Ismailia", "Menofia", "Minya", "Qaliubiya",
-            "New Valley", "Suez", "Aswan", "Assiut", "Beni Suef", "Port Said",
-            "Damietta", "Sharkia", "South Sinai", "Kafr El Sheikh", "Matruh",
-            "Luxor", "Qena", "North Sinai", "Sohag","Monufia","Qalyubia","Al Sharqia","Kafr el-Sheikh"
-        ]
+    "6th of October",
+    "Al Sharqia",         # Keep this spelling if used in the app
+    "Alexandria",
+    "Aswan",
+    "Asyut",              # Correct spelling (not "Assiut")
+    "Beheira",
+    "Beni Suef",
+    "Cairo",
+    "Dakahlia",
+    "Damietta",
+    "Faiyum",             # Correct spelling
+    "Gharbia",
+    "Giza",
+    "Helwan",
+    "Ismailia",
+    "Kafr el-Sheikh",     # One spelling, avoid duplicate "Kafr El Sheikh"
+    "Luxor",
+    "Matrouh",            # Standard spelling
+    "Minya",
+    "Monufia",            # Use one spelling (avoid "Menofia")
+    "New Valley",
+    "North Sinai",
+    "Port Said",
+    "Qalyubia",           # Standard spelling
+    "Qena",
+    "Red Sea",
+    "Sohag",
+    "South Sinai",
+    "Suez"
+    ]
     reasons=['Customer','Delivery Man']
     reasons_1=['Customer','Out Of Stock','Team']
     reasons_2=['Customer','Delivery Man','Team']
