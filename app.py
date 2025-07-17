@@ -183,36 +183,12 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                 st.rerun()
  
     egypt_governorates = [
-    "6th of October",
-    "Al Sharqia",         # Keep this spelling if used in the app
-    "Alexandria",
-    "Aswan",
-    "Asyut",              # Correct spelling (not "Assiut")
-    "Beheira",
-    "Beni Suef",
-    "Cairo",
-    "Dakahlia",
-    "Damietta",
-    "Faiyum",             # Correct spelling
-    "Gharbia",
-    "Giza",
-    "Helwan",
-    "Ismailia",
-    "Kafr el-Sheikh",     # One spelling, avoid duplicate "Kafr El Sheikh"
-    "Luxor",
-    "Matrouh",            # Standard spelling
-    "Minya",
-    "Monufia",            # Use one spelling (avoid "Menofia")
-    "New Valley",
-    "North Sinai",
-    "Port Said",
-    "Qalyubia",           # Standard spelling
-    "Qena",
-    "Red Sea",
-    "Sohag",
-    "South Sinai",
-    "Suez"
-    ]
+            "Cairo", "Alexandria", "Giza", "Dakahlia", "Red Sea", "Beheira",
+            "Fayoum", "Gharbia", "Ismailia", "Menofia", "Minya", "Qaliubiya",
+            "New Valley", "Suez", "Aswan", "Assiut", "Beni Suef", "Port Said",
+            "Damietta", "Sharkia", "South Sinai", "Kafr El Sheikh", "Matruh",
+            "Luxor", "Qena", "North Sinai", "Sohag","Monufia","Qalyubia","Al Sharqia"
+        ]
     reasons=['Customer','Delivery Man']
     reasons_1=['Customer','Out Of Stock','Team']
     reasons_2=['Customer','Delivery Man','Team']
@@ -1473,7 +1449,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                         c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies,o.shipping_price,o.products,o.order_date
                     FROM {orders} o
-                    INNER JOIN customers c ON o.customer_id = c.customer_id
+                    INNER JOIN {customers} c ON o.customer_id = c.customer_id
                     WHERE {search_condition}
                     """,
                     (search_query,)
@@ -1511,7 +1487,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies,o.shipping_price,o.products,o.order_date,o.product_prices,o.Shipping
             FROM {orders} o
-            INNER JOIN customers c ON o.customer_id = c.customer_id
+            INNER JOIN {customers} c ON o.customer_id = c.customer_id
             """
             if selected_ship_company != "All":
                 query += f" WHERE o.ship_company = '{selected_ship_company}'"
@@ -1648,7 +1624,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
                             c.email, o.ship_company, o.region, o.order_price,o.days_to_receive,o.hoodies,o.shipping_price,o.order_date,o.products,o.Shipping
                         FROM {orders} o
-                        INNER JOIN customers c ON o.customer_id = c.customer_id
+                        INNER JOIN {customers} c ON o.customer_id = c.customer_id
                         WHERE o.order_number = %s
                         """,
                         (search_order_number,)
@@ -2006,7 +1982,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                 c.email, o.ship_company, o.region, o.order_price, o.days_to_receive, 
                 o.hoodies, o.shipping_price, o.order_date
             FROM {orders} o
-            INNER JOIN customers c ON o.customer_id = c.customer_id
+            INNER JOIN {customers} c ON o.customer_id = c.customer_id
             """
             
             with create_connection() as conn:
@@ -2763,7 +2739,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                         c.email,o.region,o.reason,o.products,o.hoodies,o.order_price,o.order_date
                     FROM {cancelled_orders} o
-                    INNER JOIN customers c ON o.customer_id = c.customer_id
+                    INNER JOIN {customers} c ON o.customer_id = c.customer_id
                     WHERE {search_condition}
                     """,
                     (search_query,)
@@ -2791,7 +2767,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email,o.region,o.reason,o.hoodies,o.order_price,o.order_date,o.products
             FROM {cancelled_orders} o
-            INNER JOIN customers c ON o.customer_id = c.customer_id
+            INNER JOIN {customers} c ON o.customer_id = c.customer_id
             """
             query += f" ORDER BY {sort_column} {sort_direction}"
             
@@ -2905,7 +2881,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
                             c.email, o.region,o.reason,o.hoodies,o.order_price,o.order_date,o.products
                         FROM {cancelled_orders} o
-                        INNER JOIN customers c ON o.customer_id = c.customer_id
+                        INNER JOIN {customers} c ON o.customer_id = c.customer_id
                         WHERE o.order_number = %s
                         """,
                         (search_order_number,)
@@ -3032,7 +3008,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email,o.region,o.reason,o.hoodies,o.order_price,o.order_date,o.products
             FROM {cancelled_orders} o
-            INNER JOIN customers c ON o.customer_id = c.customer_id
+            INNER JOIN {customers} c ON o.customer_id = c.customer_id
             """
             
             with create_connection() as conn:
@@ -3558,7 +3534,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                         c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price,o.shipping_price,o.products,o.order_date,o.customer_shipping_price
                     FROM {returned_orders} o
-                    INNER JOIN customers c ON o.customer_id = c.customer_id
+                    INNER JOIN {customers} c ON o.customer_id = c.customer_id
                     WHERE {search_condition}
                     """,
                     (search_query,)
@@ -3588,7 +3564,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email, o.ship_company, o.region, o.reason,o.hoodies,o.order_price,o.shipping_price,o.products,o.order_date,o.customer_shipping_price
             FROM {returned_orders} o
-            INNER JOIN customers c ON o.customer_id = c.customer_id
+            INNER JOIN {customers} c ON o.customer_id = c.customer_id
             """
             if selected_ship_company != "All":
                 query += f" WHERE o.ship_company = '{selected_ship_company}'"
@@ -3720,7 +3696,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                         SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
                             c.email, o.ship_company, o.region,o.reason,o.hoodies,o.order_price,o.shipping_price,o.order_date,o.status,o.products,o.customer_shipping_price
                         FROM {returned_orders} o
-                        INNER JOIN customers c ON o.customer_id = c.customer_id
+                        INNER JOIN {customers} c ON o.customer_id = c.customer_id
                         WHERE o.order_number = %s
                         """,
                         (search_order_number,)
@@ -3850,7 +3826,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email, o.ship_company, o.region, o.reason,o.hoodies,o.order_price,o.shipping_price,o.order_date,o.customer_shipping_price
             FROM {returned_orders} o
-            INNER JOIN customers c ON o.customer_id = c.customer_id
+            INNER JOIN {customers} c ON o.customer_id = c.customer_id
             """
             
             with create_connection() as conn:
@@ -4497,18 +4473,18 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
             customer_shipping_price = custom_number_input("Shipping price paid By customer", min_value=0, step=1)     
             shipping_price = custom_number_input("Shipping Price Paid To Company", min_value=0, step=1)
             if st.button("Add Order"):
-                #if not customer_name.strip():
-                    #st.error("Customer Name is required.")
-                #elif contains_arabic(customer_name):
-                    #st.error("Customer Name cannot contain Arabic characters.")
-                if not customer_phone_1.strip():
+                if not customer_name.strip():
+                    st.error("Customer Name is required.")
+                elif contains_arabic(customer_name):
+                    st.error("Customer Name cannot contain Arabic characters.")
+                elif not customer_phone_1.strip():
                     st.error("Customer Phone 1 is required.")
                 elif not is_valid_1:
                     st.error("Customer Phone 1 is invalid. Please correct the number.")
-                #elif customer_phone_2 and not is_valid_2:
-                    #st.error("Customer Phone 2 is invalid. Please correct the number.")
-                #elif email and not is_valid_email:
-                    #st.error("Email is invalid. Please correct the email.")
+                elif customer_phone_2 and not is_valid_2:
+                    st.error("Customer Phone 2 is invalid. Please correct the number.")
+                elif email and not is_valid_email:
+                    st.error("Email is invalid. Please correct the email.")
                 elif contains_arabic(ship_company):
                     st.error("Shipping Company cannot contain Arabic characters.")
                 elif contains_arabic(region):
@@ -4580,7 +4556,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                         c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies,o.reason,o.products,o.customer_shipping_price
                     FROM {shipping} o
-                    INNER JOIN customers c ON o.customer_id = c.customer_id
+                    INNER JOIN {customers} c ON o.customer_id = c.customer_id
                     WHERE {search_condition}
                     """,
                     (search_query,)
@@ -4612,7 +4588,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies,o.reason,o.products,o.customer_shipping_price
             FROM {shipping} o
-            INNER JOIN customers c ON o.customer_id = c.customer_id
+            INNER JOIN {customers} c ON o.customer_id = c.customer_id
             """
             if selected_ship_company != "All":
                 query += f" WHERE o.ship_company = '{selected_ship_company}'"
@@ -4738,7 +4714,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                     SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2,
                         c.email, o.ship_company, o.region,o.status,o.shipping_price,o.hoodies,o.reason,o.products,o.customer_shipping_price
                     FROM {shipping} o
-                    INNER JOIN customers c ON o.customer_id = c.customer_id
+                    INNER JOIN {customers} c ON o.customer_id = c.customer_id
                     WHERE o.order_number = %s
                     """,
                     (search_order_number,)
@@ -4863,7 +4839,7 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
             SELECT o.order_number, c.customer_name, c.customer_phone_1, c.customer_phone_2, 
                 c.email, o.ship_company, o.region, o.status,o.shipping_price,o.hoodies,o.reason,o.customer_shipping_price,o.order_id
             FROM {shipping} o
-            INNER JOIN customers c ON o.customer_id = c.customer_id
+            INNER JOIN {customers} c ON o.customer_id = c.customer_id
             """
             
             with create_connection() as conn:
