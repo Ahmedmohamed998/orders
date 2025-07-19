@@ -183,12 +183,18 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
                 st.rerun()
  
     egypt_governorates = [
-            "Cairo", "Alexandria", "Giza", "Dakahlia", "Red Sea", "Beheira",
-            "Fayoum", "Gharbia", "Ismailia", "Menofia", "Minya", "Qaliubiya",
-            "New Valley", "Suez", "Aswan", "Assiut", "Beni Suef", "Port Said",
-            "Damietta", "Sharkia", "South Sinai", "Kafr El Sheikh", "Matruh",
-            "Luxor", "Qena", "North Sinai", "Sohag","Monufia","Qalyubia","Al Sharqia","Kafr el-Sheikh"
-        ]
+        "Cairo", "Alexandria", "Giza", "Dakahlia", "Red Sea", "Beheira",
+        "Fayoum", "Gharbia", "Ismailia", "Menofia", "Minya", "Qaliubiya",
+        "New Valley", "Suez", "Aswan", "Assiut", "Beni Suef", "Port Said",
+        "Damietta", "Sharkia", "South Sinai", "Kafr El Sheikh", "Matruh",
+        "Luxor", "Qena", "North Sinai", "Sohag", "Monufia", "Qalyubia", "Al Sharqia", "Kafr el-Sheikh",
+        "New Valley", "North Sinai", "Port Said", "Qalyubia", "Qena", "Red Sea",
+        "Sohag", "South Sinai", "Suez",
+        "6th of October", "Al Sharqia", "Alexandria", "Aswan", "Asyut", "Beheira",
+        "Beni Suef", "Cairo", "Dakahlia", "Damietta", "Faiyum", "Gharbia", "Giza",
+        "Helwan", "Ismailia", "Kafr el-Sheikh", "Luxor", "Matrouh", "Minya", "Monufia"
+    ]
+
     reasons=['Customer','Delivery Man']
     reasons_1=['Customer','Out Of Stock','Team']
     reasons_2=['Customer','Delivery Man','Team']
