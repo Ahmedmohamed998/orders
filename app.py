@@ -4473,18 +4473,18 @@ def orders_management_page(orders,returned_orders,cancelled_orders,shipping,on_h
             customer_shipping_price = custom_number_input("Shipping price paid By customer", min_value=0, step=1)     
             shipping_price = custom_number_input("Shipping Price Paid To Company", min_value=0, step=1)
             if st.button("Add Order"):
-                if not customer_name.strip():
-                    st.error("Customer Name is required.")
-                elif contains_arabic(customer_name):
-                    st.error("Customer Name cannot contain Arabic characters.")
-                elif not customer_phone_1.strip():
+                # if not customer_name.strip():
+                #     st.error("Customer Name is required.")
+                # elif contains_arabic(customer_name):
+                #     st.error("Customer Name cannot contain Arabic characters.")
+                if not customer_phone_1.strip():
                     st.error("Customer Phone 1 is required.")
                 elif not is_valid_1:
                     st.error("Customer Phone 1 is invalid. Please correct the number.")
-                elif customer_phone_2 and not is_valid_2:
-                    st.error("Customer Phone 2 is invalid. Please correct the number.")
-                elif email and not is_valid_email:
-                    st.error("Email is invalid. Please correct the email.")
+                # elif customer_phone_2 and not is_valid_2:
+                #     st.error("Customer Phone 2 is invalid. Please correct the number.")
+                # elif email and not is_valid_email:
+                #     st.error("Email is invalid. Please correct the email.")
                 elif contains_arabic(ship_company):
                     st.error("Shipping Company cannot contain Arabic characters.")
                 elif contains_arabic(region):
