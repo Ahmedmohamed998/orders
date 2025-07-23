@@ -28,7 +28,7 @@ def create_connection():
         user=db_user,
         password=db_password,
         dbname=db_name,
-        port=35051 
+        port=23208 
     )
 
 if "logged_in" in st.session_state and st.session_state.logged_in:
